@@ -1,0 +1,13 @@
+{
+    "privacy": {
+        "usageStatisticsEnabled": true
+    },
+    "context": {
+        "fileName": ["AGENTS.md", "GEMINI.md"],
+        "includeDirectories": ["./"],
+        "loadFromIncludeDirectories": true,
+        "fileFiltering": {
+            "respectGitIgnore": true
+        }
+    }
+}
