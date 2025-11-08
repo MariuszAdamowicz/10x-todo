@@ -1,24 +1,22 @@
 import type { APIRoute } from 'astro';
 import { getProjectsForUser } from '@/lib/services/project.service';
+import { DEFAULT_USER_ID } from '@/db/supabase.client';
 
 export const prerender = false;
 
 export const GET: APIRoute = async ({ locals }) => {
-	const { supabase, user } = locals;
+	const { supabase } = locals;
+	const userId = locals.user?.id || DEFAULT_USER_ID;
 
-	// TODO: Re-enable authentication before production. This is temporarily disabled for development
-	// to allow testing the endpoint without a valid user session.
-	/*
-	if (!user) {
+	if (!userId) {
 		return new Response(JSON.stringify({ error: 'Unauthorized' }), {
 			status: 401,
 			headers: { 'Content-Type': 'application/json' },
 		});
 	}
-	*/
 
 	try {
-		const projects = await getProjectsForUser(supabase);
+		const projects = await getProjectsForUser(supabase, userId);
 		return new Response(JSON.stringify(projects), {
 			status: 200,
 			headers: { 'Content-Type': 'application/json' },

@@ -10,11 +10,14 @@ import { DEFAULT_USER_ID } from '@/db/supabase.client';
  * @returns A promise that resolves to an array of projects.
  * @throws An error if the database query fails.
  */
-export async function getProjectsForUser(supabase: SupabaseClient): Promise<ProjectGetDto[]> {
+export async function getProjectsForUser(
+	supabase: SupabaseClient,
+	userId: string,
+): Promise<ProjectGetDto[]> {
 	const { data: projects, error } = await supabase
 		.from('projects')
 		.select('id, name, description, created_at')
-		.eq('user_id', DEFAULT_USER_ID)
+		.eq('user_id', userId)
 		.order('created_at', { ascending: false });
 
 	if (error) {
