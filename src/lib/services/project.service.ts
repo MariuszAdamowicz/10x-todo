@@ -162,6 +162,51 @@ class ProjectService {
 
 		return { status: 'success' };
 	}
+
+	/**
+	 * Regenerates the API key for a specific project.
+	 *
+	 * @param projectId The ID of the project.
+	 * @param userId The ID of the user.
+	param supabase The Supabase client instance.
+	 * @returns A promise that resolves to an object containing the new API key.
+	 * @throws An error if the project is not found or the user is not the owner.
+	 */
+	public async regenerateApiKey(
+		projectId: string,
+		userId: string,
+		supabase: SupabaseClient,
+	): Promise<{ api_key: string }> {
+		// First, verify the user owns the project
+		const { data: project, error: fetchError } = await supabase
+			.from('projects')
+			.select('id, user_id')
+			.eq('id', projectId)
+			.single();
+
+		if (fetchError || !project) {
+			throw new Error('Project not found');
+		}
+
+		if (project.user_id !== userId) {
+			throw new Error('Forbidden');
+		}
+
+		// Generate a new API key and update the project
+		const { data: updatedProject, error: updateError } = await supabase
+			.from('projects')
+			.update({ api_key: crypto.randomUUID() })
+			.eq('id', projectId)
+			.eq('user_id', userId)
+			.select('api_key')
+			.single();
+
+		if (updateError || !updatedProject) {
+			throw new Error('Failed to regenerate API key.');
+		}
+
+		return updatedProject;
+	}
 }
 
 export const projectService = new ProjectService();
