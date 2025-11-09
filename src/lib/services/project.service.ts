@@ -1,6 +1,5 @@
 import type { SupabaseClient } from '@/db/supabase.client';
-import type { ProjectGetDto } from '@/types';
-import { DEFAULT_USER_ID } from '@/db/supabase.client';
+import type { ProjectCreateCommand, ProjectCreateResultDto, ProjectGetDto } from '@/types';
 
 /**
  * Fetches a list of projects for a specific user.
@@ -27,4 +26,36 @@ export async function getProjectsForUser(
 	}
 
 	return projects;
+}
+
+/**
+ * Creates a new project for a specific user.
+ *
+ * @param supabase The Supabase client instance.
+ * @param userId The ID of the user creating the project.
+ * @param projectData The data for the new project.
+ * @returns A promise that resolves to the newly created project.
+ * @throws An error if the database query fails.
+ */
+export async function createProject(
+	supabase: SupabaseClient,
+	userId: string,
+	projectData: ProjectCreateCommand,
+): Promise<ProjectCreateResultDto> {
+	const { data, error } = await supabase
+		.from('projects')
+		.insert({
+			user_id: userId,
+			name: projectData.name,
+			description: projectData.description,
+		})
+		.select()
+		.single();
+
+	if (error) {
+		console.error('Error creating project:', error);
+		throw new Error('Failed to create project in the database.');
+	}
+
+	return data;
 }
