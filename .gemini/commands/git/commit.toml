@@ -1,0 +1,10 @@
+# In: <project>/.gemini/commands/git/commit.toml
+# Invoked via: /git:commit
+
+description = "Generates a Git commit message based on last changes."
+
+prompt = """
+Please generate a git commit last changes using the Conventional Commit rules from @.gemini/commit-rules.md.
+Ask user for approve commit message
+Then do push.
+"""
