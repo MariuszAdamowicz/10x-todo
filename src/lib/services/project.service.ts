@@ -131,6 +131,37 @@ class ProjectService {
 
 		return data;
 	}
+
+	/**
+	 * Deletes a project for a specific user.
+	 *
+	 * @param supabase The Supabase client instance.
+	 * @param id The ID of the project to delete.
+	 * @param userId The ID of the user deleting the project.
+	 * @returns A promise that resolves to an object indicating the operation's status.
+	 */
+	public async deleteProject(
+		supabase: SupabaseClient,
+		id: string,
+		userId: string,
+	): Promise<{ status: 'success' | 'not_found' | 'error'; error?: Error }> {
+		const { error, count } = await supabase
+			.from('projects')
+			.delete({ count: 'exact' })
+			.eq('id', id)
+			.eq('user_id', userId);
+
+		if (error) {
+			console.error('Error deleting project:', error);
+			return { status: 'error', error: new Error('Failed to delete project.') };
+		}
+
+		if (count === 0) {
+			return { status: 'not_found' };
+		}
+
+		return { status: 'success' };
+	}
 }
 
 export const projectService = new ProjectService();

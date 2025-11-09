@@ -191,3 +191,78 @@ export async function PUT(context: APIContext): Promise<Response> {
 		});
 	}
 }
+
+/**
+ * @swagger
+ * /api/projects/{id}:
+ *   delete:
+ *     summary: Delete a project
+ *     description: Deletes a project and all its associated tasks. This operation is irreversible. Access is restricted to the project owner.
+ *     tags:
+ *       - Projects
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: The unique identifier of the project to delete.
+ *     responses:
+ *       '204':
+ *         description: No Content - The project was successfully deleted.
+ *       '400':
+ *         description: Bad Request - The provided ID is not a valid UUID.
+ *       '401':
+ *         description: Unauthorized - User is not authenticated.
+ *       '404':
+ *         description: Not Found - The project with the specified ID does not exist or the user does not have permission to delete it.
+ *       '500':
+ *         description: Internal Server Error - An unexpected error occurred on the server.
+ */
+export async function DELETE(context: APIContext): Promise<Response> {
+	const { id } = context.params;
+	const { supabase } = context.locals;
+
+	const validationResult = idSchema.safeParse(id);
+
+	if (!validationResult.success) {
+		return new Response(JSON.stringify({ error: 'Invalid project ID format.' }), {
+			status: 400,
+			headers: { 'Content-Type': 'application/json' },
+		});
+	}
+
+	const validatedId = validationResult.data;
+
+	try {
+		const result = await projectService.deleteProject(supabase, validatedId, DEFAULT_USER_ID);
+
+		if (result.status === 'not_found') {
+			return new Response(JSON.stringify({ error: 'Project not found or access denied.' }), {
+				status: 404,
+				headers: { 'Content-Type': 'application/json' },
+			});
+		}
+
+		if (result.status === 'error') {
+			// The service already logged the specific error
+			return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
+				status: 500,
+				headers: { 'Content-Type': 'application/json' },
+			});
+		}
+
+		// On success (result.status === 'success')
+		return new Response(null, {
+			status: 204, // No Content
+		});
+	} catch (error) {
+		// Catch any unexpected errors from the service call itself
+		console.error('Error deleting project:', error);
+		return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
+			status: 500,
+			headers: { 'Content-Type': 'application/json' },
+		});
+	}
+}
