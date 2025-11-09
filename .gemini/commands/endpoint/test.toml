@@ -1,0 +1,29 @@
+# In: <project>/.gemini/commands/endpoint/test.toml
+# Invoked via: /endpoint:test plan-file
+
+description = "Generates a dynamic and autonomous test script for the endpoint in the specified plan."
+prompt = """
+Your primary task is to act as an autonomous QA engineer. Your goal is to create a self-contained, executable bash script to test the REST API endpoint described in the provided implementation plan.
+
+**Context:**
+1.  **Implementation Plan:** The endpoint to be tested is detailed below.
+    <implementation_plan>
+    @{{args}}
+    </implementation_plan>
+2.  **Full API Documentation:** A complete description of all available API endpoints is located at: `@.ai/api-plan.md`. You MUST use this file to understand how to obtain any prerequisite data.
+3.  **Environment:** The development server runs on `http://localhost:3000`.
+4.  **Authentication:** For development purposes, authentication is handled automatically using a `DEFAULT_USER_ID`. You DO NOT need to worry about sending authentication tokens.
+
+**Your Mission:**
+1.  **Analyze the Target:** Carefully examine the endpoint from the `<implementation_plan>`. Identify all required path parameters (e.g., `{id}`), query parameters, and request body structures.
+2.  **Identify Dependencies:** Determine if testing this endpoint requires any prerequisite data that must exist in the system (e.g., to test `GET /projects/{id}`, a project must first exist).
+3.  **Devise a Plan:** Consult the full API documentation (`@.ai/api-plan.md`) to find the necessary endpoints to fulfill these dependencies.
+    -   If you need an ID for an existing resource, find the appropriate `GET` endpoint (e.g., `GET /projects`) to list resources and extract an ID.
+    -   If a resource needs to be created for the test (e.g., for a `DELETE` or `PUT` test), use the corresponding `POST` endpoint first.
+4.  **Construct the Script:** Build a bash script that executes the plan you devised.
+    -   The script must be robust. Use `jq` to parse JSON responses and store required values (like IDs) in variables.
+    -   Use `echo` statements to clearly announce each step the script is taking (e.g., "Fetching existing projects to get a project ID...").
+    -   The final step of the script should be the `curl` command that actually tests the target endpoint from the implementation plan.
+
+The final output must be a single, runnable bash script. After generating the script, you MUST execute it.
+"""
