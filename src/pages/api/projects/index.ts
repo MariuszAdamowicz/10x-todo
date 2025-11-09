@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { getProjectsForUser, createProject } from '@/lib/services/project.service';
+import { projectService } from '@/lib/services/project.service';
 import { DEFAULT_USER_ID } from '@/db/supabase.client';
 import { z } from 'zod';
 import type { ProjectCreateCommand } from '@/types';
@@ -23,7 +23,7 @@ export const GET: APIRoute = async ({ locals }) => {
 	}
 
 	try {
-		const projects = await getProjectsForUser(supabase, userId);
+		const projects = await projectService.getProjects(supabase, userId);
 		return new Response(JSON.stringify(projects), {
 			status: 200,
 			headers: { 'Content-Type': 'application/json' },
@@ -60,7 +60,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 	}
 
 	try {
-		const newProject = await createProject(supabase, userId, projectData);
+		const newProject = await projectService.createProject(supabase, userId, projectData);
 		return new Response(JSON.stringify(newProject), {
 			status: 201,
 			headers: { 'Content-Type': 'application/json' },
