@@ -117,4 +117,3 @@ Ten endpoint umożliwia użytkownikom aktualizację istniejącego projektu. Uży
 
 3. **Dodanie dokumentacji Swagger:**
    - W pliku `src/pages/api/projects/[id].ts`, dodaj blok komentarza JSDoc dla metody `PUT`, opisujący endpoint zgodnie ze standardem OpenAPI.
-

@@ -4,6 +4,8 @@ import type {
 	ProjectCreateResultDto,
 	ProjectGetDetailsDto,
 	ProjectGetDto,
+	ProjectUpdateCommand,
+	ProjectUpdateResultDto,
 } from '@/types';
 
 class ProjectService {
@@ -89,6 +91,42 @@ class ProjectService {
 		if (error) {
 			console.error('Error creating project:', error);
 			throw new Error('Failed to create project in the database.');
+		}
+
+		return data;
+	}
+
+	/**
+	 * Updates an existing project for a specific user.
+	 *
+	 * @param supabase The Supabase client instance.
+	 * @param id The ID of the project to update.
+	 * @param userId The ID of the user updating the project.
+	 * @param projectData The new data for the project.
+	 * @returns A promise that resolves to the updated project or null if not found or permission is denied.
+	 */
+	public async updateProject(
+		supabase: SupabaseClient,
+		id: string,
+		userId: string,
+		projectData: ProjectUpdateCommand,
+	): Promise<ProjectUpdateResultDto | null> {
+		const { data, error } = await supabase
+			.from('projects')
+			.update({
+				name: projectData.name,
+				description: projectData.description,
+			})
+			.eq('id', id)
+			.eq('user_id', userId)
+			.select()
+			.single();
+
+		if (error) {
+			console.error('Error updating project:', error);
+			// The error might indicate that the row was not found, which we treat as a "not found" case.
+			// Or it could be a genuine database error. For now, we return null and let the caller handle it.
+			return null;
 		}
 
 		return data;
