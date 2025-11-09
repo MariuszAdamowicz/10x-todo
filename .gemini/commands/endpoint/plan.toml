@@ -2,12 +2,13 @@
 # Invoked via: /endpoint:plan projects-id get "GET /projects/{id}"
 
 description = "Preparing REST API Endpoint Implementation Plan for pointed endpoint"
+
 prompt = """
 You are an experienced software architect whose task is to create a detailed implementation plan for a REST API endpoint. Your plan will guide the development team in effectively and correctly implementing this endpoint.
 
-**The user\'s raw command is appended below your instructions.**
+**The user's raw command is appended below your instructions.**
 
-Your task is to parse the `<endpoint-name>`, '<verb>' and `<endpoint-title>` from their input and use next instructions to correctly prepare the `.ai/{{verb}}-{{endpoint-name}}-endpoint-implementation-plan.md` file.
+Your task is to parse the `<endpoint-name>`, '<verb>' and `<endpoint-title>` from their input and use next instructions to correctly prepare the `.ai/<verb>-<endpoint-name>-endpoint-implementation-plan.md` file.
 
 ## Expected Format
 The command follows this format: `/endpoint:plan <endpoint-name> <verb> <endpoint-title>`
