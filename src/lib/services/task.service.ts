@@ -48,11 +48,18 @@ export const createTask = async (
   }
 
   // 4. Calculate new position
-  const { data: lastTask, error: positionError } = await supabase
+  const positionQuery = supabase
     .from('tasks')
     .select('position')
-    .eq('project_id', projectId)
-    .eq('parent_id', command.parent_id || null)
+    .eq('project_id', projectId);
+
+  if (command.parent_id) {
+    positionQuery.eq('parent_id', command.parent_id);
+  } else {
+    positionQuery.is('parent_id', null);
+  }
+
+  const { data: lastTask, error: positionError } = await positionQuery
     .order('position', { ascending: false })
     .limit(1)
     .single();
@@ -80,6 +87,7 @@ export const createTask = async (
     .single();
 
   if (insertError || !newTask) {
+    console.error('Supabase insert error:', insertError);
     throw new Error('Failed to create task.');
   }
 
