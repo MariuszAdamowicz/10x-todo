@@ -287,6 +287,8 @@ All endpoints are prefixed with `/api`. Authentication is required for all endpo
 
 ## 3. Authentication and Authorization
 
+**Note on Current Implementation:** The middleware currently has a temporary, minimal implementation that only handles `X-API-Key` authentication for AI assistants to facilitate testing. Full user authentication via JWT is not yet implemented.
+
 -   **User Authentication**: Handled by Supabase Auth. A valid JWT must be sent in the `Authorization` header for user-facing endpoints. RLS policies for the `authenticated` role will enforce ownership.
 -   **AI Authentication**: The AI assistant must include the project-specific API key in the `X-API-Key` HTTP header of every request.
 -   **Authorization Logic**: A custom middleware in Astro will inspect the request.

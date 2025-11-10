@@ -65,7 +65,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
 };
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  const { supabase } = locals;
+  const { supabase, user } = locals;
 
   try {
     const body = await request.json();
@@ -83,8 +83,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const command: TaskCreateCommand = validation.data;
 
-    // TODO: Replace with actual auth logic
-    const auth = { userId: DEFAULT_USER_ID };
+    // Handle auth for both AI (projectId from middleware) and user
+    const auth = user?.projectId
+      ? { projectId: user.projectId }
+      : { userId: user?.id ?? DEFAULT_USER_ID };
 
     const newTask = await taskService.createTask(supabase, command, auth);
 
