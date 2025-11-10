@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@/db/supabase.client';
-import type { Task, TaskCreateCommand } from '@/types';
+import type { Task, TaskCreateCommand, TaskUpdateCommand } from '@/types';
 import { projectService } from './project.service';
 
 export interface GetTasksFilters {
@@ -199,6 +199,58 @@ class TaskService {
     }
 
     return data;
+  }
+
+  public async updateTask(
+    supabase: SupabaseClient,
+    taskId: string,
+    data: TaskUpdateCommand,
+    auth: { userId?: string; aiProjectId?: string },
+  ): Promise<Task | null> {
+    if (!auth.userId && !auth.aiProjectId) {
+      throw new Error('Authentication required.');
+    }
+
+    // Base query
+    const query = supabase.from('tasks').update(data).eq('id', taskId);
+
+    // Authorization check
+    if (auth.userId) {
+      const { data: projectData, error: projectError } = await supabase
+        .from('tasks')
+        .select('projects(user_id)')
+        .eq('id', taskId)
+        .single();
+
+      if (projectError || !projectData) {
+        return null;
+      }
+
+      if (projectData.projects?.user_id !== auth.userId) {
+        return null;
+      }
+    } else if (auth.aiProjectId) {
+      query.eq('project_id', auth.aiProjectId);
+
+      if (data.is_delegated !== undefined) {
+        throw new Error('AI is not allowed to change the delegation status.');
+      }
+      if (data.status_id !== undefined) {
+        throw new Error('AI is not allowed to change the task status directly.');
+      }
+    }
+
+    const { data: updatedTask, error } = await query.select().single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      console.error('Error updating task:', error);
+      throw new Error('Failed to update task.');
+    }
+
+    return updatedTask;
   }
 }
 

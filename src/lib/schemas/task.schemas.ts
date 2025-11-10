@@ -7,6 +7,18 @@ export const TaskCreateSchema = z.object({
   project_id: z.string().uuid(), // Wymagane dla użytkownika, walidowane w serwisie
 });
 
+export const TaskUpdateSchema = z
+  .object({
+    title: z.string().min(1),
+    description: z.string().nullable(),
+    status_id: z.number().int(),
+    is_delegated: z.boolean(),
+  })
+  .partial()
+  .refine(data => Object.keys(data).length > 0, {
+    message: 'Request body must not be empty.',
+  });
+
 export const GetTasksQuerySchema = z.object({
   projectId: z.string().uuid().optional(), // Wymagane dla użytkownika, nieobecne dla AI
   parentId: z.string().uuid().optional(),
