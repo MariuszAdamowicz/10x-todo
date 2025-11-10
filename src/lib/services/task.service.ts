@@ -180,6 +180,26 @@ class TaskService {
 
     return newTask;
   }
+  public async getTaskById({
+    taskId,
+    supabase,
+  }: {
+    taskId: string;
+    supabase: SupabaseClient;
+  }): Promise<Task | null> {
+    const { data, error } = await supabase.from('tasks').select('*').eq('id', taskId).single();
+
+    if (error) {
+      console.error('Error fetching task:', error);
+      // PGRST116 = PostgREST error "exact-single" - no rows found
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      throw new Error('Failed to fetch task.');
+    }
+
+    return data;
+  }
 }
 
 export const taskService = new TaskService();
