@@ -7,8 +7,8 @@ export const prerender = false;
 
 const taskIdSchema = z.string().uuid();
 
-export async function GET({ params, context }: APIContext) {
-	const supabase = context.locals.supabase as SupabaseClient;
+export async function GET({ params, locals }: APIContext) {
+	const supabase = locals.supabase as SupabaseClient;
 	const validation = taskIdSchema.safeParse(params.id);
 
 	if (!validation.success) {

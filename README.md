@@ -56,7 +56,7 @@ Follow these instructions to set up and run the project on your local machine.
     npm run dev
     ```
 
-The application should now be running at `http://localhost:4321`.
+The application should now be running at `http://localhost:3000`.
 
 ## Available Scripts
 
