@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@/db/supabase.client';
-import type { Task, TaskCreateCommand, TaskUpdateCommand } from '@/types';
+import type { Task, TaskCreateCommand, TaskProposeStatusCommand, TaskUpdateCommand } from '@/types';
 import { projectService } from './project.service';
 
 export interface GetTasksFilters {
@@ -252,6 +252,66 @@ class TaskService {
 
     return updatedTask;
   }
+
+	public async proposeTaskStatus(
+		supabase: SupabaseClient,
+		taskId: string,
+		command: TaskProposeStatusCommand,
+		auth: { aiProjectId: string },
+	): Promise<Task> {
+		// 1. Fetch the task to verify ownership and delegation status
+		const { data: task, error: fetchError } = await supabase
+			.from('tasks')
+			.select('id, project_id, is_delegated')
+			.eq('id', taskId)
+			.eq('project_id', auth.aiProjectId)
+			.single();
+
+		if (fetchError || !task) {
+			// PGRST116: No rows found
+			const message =
+				fetchError && fetchError.code === 'PGRST116'
+					? 'Task not found or AI does not have access.'
+					: 'Failed to retrieve task.';
+			throw new Error(message);
+		}
+
+		// 2. Verify the task is delegated to the AI
+		if (!task.is_delegated) {
+			throw new Error('AI can only propose status changes for delegated tasks.');
+		}
+
+		// 3. Validate and map the proposed status ID
+		const { new_status_id } = command;
+		const PENDING_STATUS_MAP: Record<number, number> = {
+			4: 5, // Done -> Done, pending acceptance
+			6: 7, // Canceled -> Canceled, pending acceptance
+		};
+
+		if (!Object.keys(PENDING_STATUS_MAP).map(Number).includes(new_status_id)) {
+			throw new Error('Invalid status transition proposed.');
+		}
+
+		const pendingStatusId = PENDING_STATUS_MAP[new_status_id];
+
+		// 4. Call the RPC function to perform the update and comment creation in a transaction
+		const { data: updatedTask, error: rpcError } = await supabase
+			.rpc('propose_task_status', {
+				p_task_id: taskId,
+				p_new_status_id: pendingStatusId,
+				p_comment_text: command.comment,
+				p_author_is_ai: true,
+			})
+			.select()
+			.single();
+
+		if (rpcError || !updatedTask) {
+			console.error('RPC error proposing task status:', rpcError);
+			throw new Error('Failed to propose task status change.');
+		}
+
+		return updatedTask;
+	}
 }
 
 export const taskService = new TaskService();

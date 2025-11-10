@@ -27,3 +27,8 @@ export const GetTasksQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional().default(10),
   delegated: z.coerce.boolean().optional(),
 });
+
+export const taskProposeStatusSchema = z.object({
+	new_status_id: z.number().int(),
+	comment: z.string().min(1, { message: 'Komentarz jest wymagany.' }),
+});
