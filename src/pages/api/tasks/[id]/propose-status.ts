@@ -1,7 +1,7 @@
 import type { APIContext } from 'astro';
 import { taskProposeStatusSchema } from '@/lib/schemas/task.schemas';
 import { ZodError } from 'zod';
-import { taskService } from '@/lib/services/task.service';
+import { TaskService } from '@/lib/services/task.service';
 import type { SupabaseClient } from '@/db/supabase.client';
 
 export const prerender = false;
@@ -26,8 +26,8 @@ export async function POST({ params, request, locals }: APIContext): Promise<Res
 		const body = await request.json();
 		const command = taskProposeStatusSchema.parse(body);
 
+		const taskService = new TaskService(supabase as SupabaseClient);
 		const updatedTask = await taskService.proposeTaskStatus(
-			supabase as SupabaseClient,
 			taskId,
 			command,
 			{ aiProjectId },

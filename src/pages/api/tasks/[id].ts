@@ -1,8 +1,12 @@
-import type { APIContext } from 'astro';
-import { z } from 'zod';
-import { taskService } from '@/lib/services/task.service';
-import { DEFAULT_USER_ID, type SupabaseClient } from '@/db/supabase.client';
-import { TaskUpdateSchema } from '@/lib/schemas/task.schemas';
+import type { APIContext } from "astro";
+import { z } from "zod";
+import { TaskService } from "@/lib/services/task.service";
+import { DEFAULT_USER_ID, type SupabaseClient } from "@/db/supabase.client";
+import { TaskUpdateSchema } from "@/lib/schemas/task.schemas";
+import {
+  AuthorizationError,
+  TaskNotFoundError,
+} from "@/lib/errors";
 
 export const prerender = false;
 
@@ -15,34 +19,34 @@ export async function GET({ params, locals }: APIContext) {
   if (!validation.success) {
     return new Response(
       JSON.stringify({
-        message: 'Invalid task ID format',
+        message: "Invalid task ID format",
         errors: validation.error.flatten().fieldErrors,
       }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } },
+      { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
 
   const taskId = validation.data;
 
   try {
-    const task = await taskService.getTaskById({ taskId, supabase });
-
-    if (!task) {
-      return new Response(JSON.stringify({ message: 'Task not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+    const taskService = new TaskService(supabase);
+    const task = await taskService.getTaskById({ taskId });
 
     return new Response(JSON.stringify(task), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error('Error fetching task:', error);
-    return new Response(JSON.stringify({ message: 'Internal Server Error' }), {
+    if (error instanceof TaskNotFoundError) {
+      return new Response(JSON.stringify({ message: error.message }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    console.error("Error fetching task:", error);
+    return new Response(JSON.stringify({ message: "Internal Server Error" }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { "Content-Type": "application/json" },
     });
   }
 }
@@ -55,10 +59,10 @@ export async function PATCH({ params, request, locals }: APIContext) {
   if (!idValidation.success) {
     return new Response(
       JSON.stringify({
-        message: 'Invalid task ID format',
+        message: "Invalid task ID format",
         errors: idValidation.error.flatten().fieldErrors,
       }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } },
+      { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
   const taskId = idValidation.data;
@@ -68,9 +72,9 @@ export async function PATCH({ params, request, locals }: APIContext) {
   try {
     body = await request.json();
   } catch (e) {
-    return new Response(JSON.stringify({ message: 'Invalid JSON body' }), {
+    return new Response(JSON.stringify({ message: "Invalid JSON body" }), {
       status: 400,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { "Content-Type": "application/json" },
     });
   }
 
@@ -78,10 +82,10 @@ export async function PATCH({ params, request, locals }: APIContext) {
   if (!bodyValidation.success) {
     return new Response(
       JSON.stringify({
-        message: 'Invalid request body',
+        message: "Invalid request body",
         errors: bodyValidation.error.flatten().fieldErrors,
       }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } },
+      { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
   const updateData = bodyValidation.data;
@@ -89,25 +93,37 @@ export async function PATCH({ params, request, locals }: APIContext) {
   try {
     // TODO: Replace with actual auth principal from context.locals
     const auth = { userId: DEFAULT_USER_ID };
-
-    const updatedTask = await taskService.updateTask(supabase, taskId, updateData, auth);
-
-    if (!updatedTask) {
-      return new Response(JSON.stringify({ message: 'Task not found or access denied' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+    const taskService = new TaskService(supabase);
+    const updatedTask = await taskService.updateTask(
+      taskId,
+      updateData,
+      auth
+    );
 
     return new Response(JSON.stringify(updatedTask), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { "Content-Type": "application/json" },
     });
   } catch (error: any) {
-    console.error('Error updating task:', error);
-    return new Response(JSON.stringify({ message: error.message || 'Internal Server Error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    if (error instanceof TaskNotFoundError) {
+      return new Response(JSON.stringify({ message: error.message }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (error instanceof AuthorizationError) {
+      return new Response(JSON.stringify({ message: error.message }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    console.error("Error updating task:", error);
+    return new Response(
+      JSON.stringify({ message: error.message || "Internal Server Error" }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 }
