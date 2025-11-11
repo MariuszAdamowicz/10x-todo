@@ -32,3 +32,7 @@ export const taskProposeStatusSchema = z.object({
 	new_status_id: z.number().int(),
 	comment: z.string().min(1, { message: 'Komentarz jest wymagany.' }),
 });
+
+export const taskRejectProposalSchema = z.object({
+	comment: z.string().min(1, { message: 'Komentarz jest wymagany.' }),
+});

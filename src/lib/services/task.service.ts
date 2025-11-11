@@ -383,4 +383,50 @@ export class TaskService {
 
     return updatedTask;
   }
+
+  public async rejectProposal(
+    taskId: string,
+    userId: string,
+    comment: string
+  ): Promise<Task> {
+    // 1. Fetch the task and its project to verify ownership
+    const { data: task, error: fetchError } = await this.supabase
+      .from("tasks")
+      .select("*, project:projects(user_id)")
+      .eq("id", taskId)
+      .single();
+
+    if (fetchError || !task) {
+      throw new TaskNotFoundError();
+    }
+
+    // 2. Verify user ownership
+    if (task.project?.user_id !== userId) {
+      throw new AuthorizationError();
+    }
+
+    // 3. Check if the task is awaiting acceptance
+    const validStatusIds = [4, 5]; // 4: Done, pending acceptance, 5: Canceled, pending confirmation
+    if (!validStatusIds.includes(task.status_id)) {
+      throw new InvalidStateError(
+        "This task is not awaiting acceptance and its proposal cannot be rejected."
+      );
+    }
+
+    // 4. Call the RPC function to perform the rejection
+    const { data: updatedTask, error: rpcError } = await this.supabase
+      .rpc("reject_task_proposal", {
+        p_task_id: taskId,
+        p_comment_text: comment,
+      })
+      .select()
+      .single();
+
+    if (rpcError || !updatedTask) {
+      console.error("RPC error rejecting task proposal:", rpcError);
+      throw new Error("Failed to reject task proposal.");
+    }
+
+    return updatedTask;
+  }
 }
