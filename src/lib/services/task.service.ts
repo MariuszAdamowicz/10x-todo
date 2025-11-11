@@ -336,52 +336,34 @@ export class TaskService {
     taskId: string,
     userId: string
   ): Promise<Task> {
-    // 1. Fetch the task and its project to verify ownership
-    const { data: task, error: fetchError } = await this.supabase
-      .from("tasks")
-      .select("*, project:projects(user_id)")
-      .eq("id", taskId)
+    const { data, error } = await this.supabase
+      .rpc("accept_task_proposal", {
+        p_task_id: taskId,
+        p_user_id: userId,
+      })
       .single();
 
-    if (fetchError || !task) {
+    if (error) {
+      if (error.code === "PGRST" && error.message.includes("task not found")) {
+        throw new TaskNotFoundError();
+      }
+      if (error.code === "42501") {
+        throw new AuthorizationError();
+      }
+      if (error.code === "23514") {
+        throw new InvalidStateError("Task is not pending acceptance.");
+      }
+      console.error("RPC error accepting task proposal:", error);
+      throw new Error("Failed to accept task proposal.");
+    }
+
+    if (!data) {
+      // This case should ideally be covered by the RPC's 'not found' error,
+      // but it's good practice to have a fallback.
       throw new TaskNotFoundError();
     }
 
-    // 2. Verify user ownership
-    if (task.project?.user_id !== userId) {
-      throw new AuthorizationError();
-    }
-
-    // 3. Check current status and determine the new status
-    const currentStatusId = task.status_id;
-    let newStatusId: number;
-
-    if (currentStatusId === 4) {
-      // 'Done, pending acceptance' -> 'Done'
-      newStatusId = 2;
-    } else if (currentStatusId === 5) {
-      // 'Canceled, pending confirmation' -> 'Canceled'
-      newStatusId = 3;
-    } else {
-      throw new InvalidStateError(
-        "This task is not awaiting acceptance."
-      );
-    }
-
-    // 4. Update the task status
-    const { data: updatedTask, error: updateError } = await this.supabase
-      .from("tasks")
-      .update({ status_id: newStatusId })
-      .eq("id", taskId)
-      .select()
-      .single();
-
-    if (updateError || !updatedTask) {
-      console.error("Error updating task status:", updateError);
-      throw new Error("Failed to update task status.");
-    }
-
-    return updatedTask;
+    return data;
   }
 
   public async rejectProposal(

@@ -6,7 +6,7 @@ import {
   AuthorizationError,
   ProjectNotFoundError,
 } from "@/lib/errors";
-import { projectService } from "@/lib/services/project.service";
+import { ProjectService } from "@/lib/services/project.service";
 import type { ProjectUpdateCommand } from "@/types";
 
 export const prerender = false;
@@ -74,6 +74,7 @@ export async function GET(context: APIContext): Promise<Response> {
   const validatedId = validationResult.data;
 
   try {
+    const projectService = new ProjectService();
     const project = await projectService.getProjectById(
       supabase,
       validatedId,
@@ -174,6 +175,7 @@ export async function PUT(context: APIContext): Promise<Response> {
 
   // 3. Call the service to update the project
   try {
+    const projectService = new ProjectService();
     const updatedProject = await projectService.updateProject(
       supabase,
       validatedId,
@@ -249,6 +251,7 @@ export async function DELETE(context: APIContext): Promise<Response> {
   const validatedId = validationResult.data;
 
   try {
+    const projectService = new ProjectService();
     await projectService.deleteProject(supabase, validatedId, DEFAULT_USER_ID);
     return new Response(null, {
       status: 204, // No Content

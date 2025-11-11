@@ -59,7 +59,7 @@ export const POST: APIRoute = async (context) => {
         headers: { "Content-Type": "application/json" },
       });
     }
-    console.error("Unexpected error:", error);
+    console.error("Error in accept-proposal endpoint:", error);
     return new Response(
       JSON.stringify({ error: "An unexpected error occurred." }),
       { status: 500, headers: { "Content-Type": "application/json" } }

@@ -12,7 +12,7 @@ import type {
   ProjectUpdateResultDto,
 } from "@/types";
 
-class ProjectService {
+export class ProjectService {
   /**
    * Fetches a list of projects for a specific user.
    *
@@ -217,5 +217,3 @@ class ProjectService {
     return updatedProject;
   }
 }
-
-export const projectService = new ProjectService();
