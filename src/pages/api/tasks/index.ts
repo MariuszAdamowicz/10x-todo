@@ -1,8 +1,12 @@
-import type { APIRoute } from 'astro';
-import { GetTasksQuerySchema, TaskCreateSchema } from '@/lib/schemas/task.schemas';
-import { taskService } from '@/lib/services/task.service';
-import type { TaskCreateCommand } from '@/types';
-import { DEFAULT_USER_ID } from '@/db/supabase.client';
+import type { APIRoute } from "astro";
+import { GetTasksQuerySchema, TaskCreateSchema } from "@/lib/schemas/task.schemas";
+import { TaskService } from "@/lib/services/task.service";
+import type { TaskCreateCommand } from "@/types";
+import { DEFAULT_USER_ID } from "@/db/supabase.client";
+import {
+  AuthorizationError,
+  TaskNotFoundError,
+} from "@/lib/errors";
 
 export const prerender = false;
 
@@ -15,10 +19,10 @@ export const GET: APIRoute = async ({ url, locals }) => {
     if (!validation.success) {
       return new Response(
         JSON.stringify({
-          message: 'Validation failed',
+          message: "Validation failed",
           errors: validation.error.flatten().fieldErrors,
         }),
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -27,7 +31,8 @@ export const GET: APIRoute = async ({ url, locals }) => {
     // TODO: Replace with actual auth logic
     const auth = { userId: DEFAULT_USER_ID };
 
-    const { data, count } = await taskService.getTasks(supabase, {
+    const taskService = new TaskService(supabase);
+    const { data, count } = await taskService.getTasks({
       filters,
       pagination: { page, limit },
       auth,
@@ -45,20 +50,21 @@ export const GET: APIRoute = async ({ url, locals }) => {
           totalPages,
         },
       }),
-      { status: 200 },
+      { status: 200 }
     );
   } catch (error) {
-    const err = error as Error;
-    console.error('Error getting tasks:', err.message);
-
-    if (err.message.includes('is required')) {
-      return new Response(JSON.stringify({ message: err.message }), { status: 400 });
+    if (error instanceof TaskNotFoundError) {
+      return new Response(JSON.stringify({ message: error.message }), {
+        status: 404,
+      });
     }
-    if (err.message.includes('not found') || err.message.includes('does not have access')) {
-      return new Response(JSON.stringify({ message: err.message }), { status: 404 });
+    if (error instanceof AuthorizationError) {
+      return new Response(JSON.stringify({ message: error.message }), {
+        status: 403,
+      });
     }
-
-    return new Response(JSON.stringify({ message: 'Internal Server Error' }), {
+    console.error("Error getting tasks:", error);
+    return new Response(JSON.stringify({ message: "Internal Server Error" }), {
       status: 500,
     });
   }
@@ -74,10 +80,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!validation.success) {
       return new Response(
         JSON.stringify({
-          message: 'Validation failed',
+          message: "Validation failed",
           errors: validation.error.flatten().fieldErrors,
         }),
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -88,29 +94,26 @@ export const POST: APIRoute = async ({ request, locals }) => {
       ? { projectId: user.projectId }
       : { userId: user?.id ?? DEFAULT_USER_ID };
 
-    const newTask = await taskService.createTask(supabase, command, auth);
+    const taskService = new TaskService(supabase);
+    const newTask = await taskService.createTask(command, auth);
 
     return new Response(JSON.stringify(newTask), { status: 201 });
   } catch (error) {
-    const err = error as Error;
-    console.error('Error creating task:', err.message);
-
-    if (
-      err.message.includes('not found') ||
-      err.message.includes('does not belong to the specified project')
-    ) {
-      return new Response(JSON.stringify({ message: err.message }), { status: 404 });
+    if (error instanceof TaskNotFoundError) {
+      return new Response(JSON.stringify({ message: error.message }), {
+        status: 404,
+      });
     }
-
-    if (err.message.includes('is required')) {
-      return new Response(JSON.stringify({ message: err.message }), { status: 400 });
+    if (error instanceof AuthorizationError) {
+      return new Response(JSON.stringify({ message: error.message }), {
+        status: 403,
+      });
     }
-
-    if (err.message.includes('AI can only create sub-tasks')) {
-      return new Response(JSON.stringify({ message: err.message }), { status: 403 });
+    if (error instanceof Error && error.message.includes("is required")) {
+       return new Response(JSON.stringify({ message: error.message }), { status: 400 });
     }
-
-    return new Response(JSON.stringify({ message: 'Internal Server Error' }), {
+    console.error("Error creating task:", error);
+    return new Response(JSON.stringify({ message: "Internal Server Error" }), {
       status: 500,
     });
   }

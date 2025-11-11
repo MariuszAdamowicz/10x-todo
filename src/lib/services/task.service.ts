@@ -8,6 +8,7 @@ import type {
 import {
   AuthorizationError,
   InvalidStateError,
+  ProjectNotFoundError,
   TaskNotFoundError,
 } from "../errors";
 
@@ -63,7 +64,7 @@ export class TaskService {
         .single();
 
       if (!project) {
-        throw new Error("Project not found or user does not have access.");
+        throw new ProjectNotFoundError("Project not found or user does not have access.");
       }
     }
 
@@ -128,7 +129,7 @@ export class TaskService {
       .single();
 
     if (projectError || !project) {
-      throw new Error("Project not found or user does not have access.");
+      throw new ProjectNotFoundError("Project not found or user does not have access.");
     }
 
     // 3. Validate parent_id if provided
@@ -140,18 +141,18 @@ export class TaskService {
         .single();
 
       if (parentError || !parentTask) {
-        throw new Error("Parent task not found.");
+        throw new TaskNotFoundError("Parent task not found.");
       }
 
       if (parentTask.project_id !== projectId) {
-        throw new Error(
+        throw new AuthorizationError(
           "Parent task does not belong to the specified project."
         );
       }
 
       // AI-specific rules
       if (createdByAi && !parentTask.is_delegated) {
-        throw new Error("AI can only create sub-tasks for delegated tasks.");
+        throw new AuthorizationError("AI can only create sub-tasks for delegated tasks.");
       }
     }
 
@@ -205,20 +206,18 @@ export class TaskService {
     taskId,
   }: {
     taskId: string;
-  }): Promise<Task | null> {
+  }): Promise<Task> {
     const { data, error } = await this.supabase
       .from("tasks")
       .select("*")
       .eq("id", taskId)
       .single();
 
-    if (error) {
-      console.error("Error fetching task:", error);
-      // PGRST116 = PostgREST error "exact-single" - no rows found
-      if (error.code === "PGRST116") {
-        return null;
+    if (error || !data) {
+      if (error && error.code !== "PGRST116") {
+        console.error("Error fetching task:", error);
       }
-      throw new Error("Failed to fetch task.");
+      throw new TaskNotFoundError();
     }
 
     return data;
@@ -228,9 +227,9 @@ export class TaskService {
     taskId: string,
     data: TaskUpdateCommand,
     auth: { userId?: string; aiProjectId?: string }
-  ): Promise<Task | null> {
+  ): Promise<Task> {
     if (!auth.userId && !auth.aiProjectId) {
-      throw new Error("Authentication required.");
+      throw new AuthorizationError("Authentication required.");
     }
 
     // Base query
@@ -245,20 +244,20 @@ export class TaskService {
         .single();
 
       if (projectError || !projectData) {
-        return null;
+        throw new TaskNotFoundError();
       }
 
       if (projectData.projects?.user_id !== auth.userId) {
-        return null;
+        throw new AuthorizationError();
       }
     } else if (auth.aiProjectId) {
       query.eq("project_id", auth.aiProjectId);
 
       if (data.is_delegated !== undefined) {
-        throw new Error("AI is not allowed to change the delegation status.");
+        throw new AuthorizationError("AI is not allowed to change the delegation status.");
       }
       if (data.status_id !== undefined) {
-        throw new Error(
+        throw new AuthorizationError(
           "AI is not allowed to change the task status directly."
         );
       }
@@ -268,7 +267,7 @@ export class TaskService {
 
     if (error) {
       if (error.code === "PGRST116") {
-        return null;
+        throw new TaskNotFoundError();
       }
       console.error("Error updating task:", error);
       throw new Error("Failed to update task.");
@@ -291,30 +290,25 @@ export class TaskService {
       .single();
 
     if (fetchError || !task) {
-      // PGRST116: No rows found
-      const message =
-        fetchError && fetchError.code === "PGRST116"
-          ? "Task not found or AI does not have access."
-          : "Failed to retrieve task.";
-      throw new Error(message);
+      throw new TaskNotFoundError("Task not found or AI does not have access.");
     }
 
     // 2. Verify the task is delegated to the AI
     if (!task.is_delegated) {
-      throw new Error("AI can only propose status changes for delegated tasks.");
+      throw new AuthorizationError("AI can only propose status changes for delegated tasks.");
     }
 
     // 3. Validate and map the proposed status ID
     const { new_status_id } = command;
     const PENDING_STATUS_MAP: Record<number, number> = {
-      4: 5, // Done -> Done, pending acceptance
-      6: 7, // Canceled -> Canceled, pending acceptance
+      2: 4, // Propose 'Done' -> Set 'Done, pending acceptance'
+      3: 5, // Propose 'Canceled' -> Set 'Canceled, pending confirmation'
     };
 
     if (
       !Object.keys(PENDING_STATUS_MAP).map(Number).includes(new_status_id)
     ) {
-      throw new Error("Invalid status transition proposed.");
+      throw new InvalidStateError("Invalid status transition proposed. AI can only propose 'Done' (2) or 'Canceled' (3).");
     }
 
     const pendingStatusId = PENDING_STATUS_MAP[new_status_id];
