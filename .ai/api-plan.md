@@ -131,9 +131,10 @@ All endpoints are prefixed with `/api`. Authentication is required for all endpo
 
 #### **`GET /tasks`**
 
--   **Description**: Get all tasks for a project. Can be filtered by parent task or delegation status. Intended for both User and AI. The project is identified by the user's session or the AI's API key.
+-   **Description**: Get all tasks for a project. A `project_id` is required for user-based requests. Can be filtered by parent task.
 -   **Query Parameters**:
-    -   `parent_id` (uuid, optional): Filters tasks to get children of a specific parent task. If not provided, returns top-level tasks.
+    -   `project_id` (uuid, required): The ID of the project to retrieve tasks from.
+    -   `parent_id` (uuid, optional): Filters tasks to get children of a specific parent task. If not provided, returns top-level tasks (where `parent_id` is null).
     -   `delegated` (boolean, optional, AI-only): If `true`, returns only tasks delegated to the AI.
 -   **Success Response (200 OK)**:
     ```json
@@ -247,19 +248,22 @@ All endpoints are prefixed with `/api`. Authentication is required for all endpo
 
 #### **`POST /tasks/reorder`**
 
--   **Description**: Reorders a list of tasks under the same parent. Used by both User and AI, with different authorization logic.
+-   **Description**: Reorders a list of tasks. The new order is determined by the `order` field for each task provided. This operation is transactional.
 -   **Request Body**:
     ```json
     {
-      "parent_id": "uuid | null", // The parent of the tasks being reordered
-      "task_ids": ["uuid", "uuid", "uuid"] // Array of task IDs in the new desired order
+      "tasks": [
+        { "id": "uuid", "order": 0 },
+        { "id": "uuid", "order": 1 }
+      ]
     }
     ```
 -   **Success Response (204 No Content)**:
 -   **Error Responses**:
-    -   `400 Bad Request`: `task_ids` is empty or contains duplicates.
+    -   `400 Bad Request`: The `tasks` array is empty or the data is malformed.
     -   `401 Unauthorized`: Invalid credentials.
-    -   `403 Forbidden`: Attempting to reorder tasks not owned or managed by the principal.
+    -   `403 Forbidden`: User does not have permission to reorder these tasks.
+    -   `404 Not Found`: One or more tasks in the list were not found.
 
 ---
 

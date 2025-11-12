@@ -23,7 +23,7 @@ Ten endpoint służy do pobierania listy zadań (`tasks`). Jest przeznaczony zar
   ```typescript
   // Schemat Zod do walidacji parametrów zapytania
   const GetTasksQuerySchema = z.object({
-    projectId: z.string().uuid().optional(), // Wymagane dla użytkownika, nieobecne dla AI
+    projectId: z.string().uuid(), // Wymagane dla użytkownika, nieobecne dla AI
     parentId: z.string().uuid().optional(),
     statusId: z.coerce.number().int().optional(),
     page: z.coerce.number().int().min(1).optional().default(1),
