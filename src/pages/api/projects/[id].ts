@@ -1,5 +1,4 @@
 import type { APIContext } from "astro";
-import { z } from "zod";
 
 import { DEFAULT_USER_ID } from "@/db/supabase.client";
 import {
@@ -7,16 +6,10 @@ import {
   ProjectNotFoundError,
 } from "@/lib/errors";
 import { ProjectService } from "@/lib/services/project.service";
+import { ProjectIdSchema, ProjectUpdateSchema } from "@/lib/schemas/project.schemas";
 import type { ProjectUpdateCommand } from "@/types";
 
 export const prerender = false;
-
-const idSchema = z.string().uuid({ message: "Invalid project ID format." });
-
-const projectUpdateSchema = z.object({
-  name: z.string().min(1, "Project name is required."),
-  description: z.string().nullable(),
-});
 
 /**
  * @swagger
@@ -62,7 +55,7 @@ export async function GET(context: APIContext): Promise<Response> {
   const { id } = context.params;
   const { supabase } = context.locals;
 
-  const validationResult = idSchema.safeParse(id);
+  const validationResult = ProjectIdSchema.safeParse(id);
 
   if (!validationResult.success) {
     return new Response(JSON.stringify({ error: "Invalid project ID format." }), {
@@ -142,7 +135,7 @@ export async function PUT(context: APIContext): Promise<Response> {
   const { supabase } = context.locals;
 
   // 1. Validate ID from path
-  const idValidationResult = idSchema.safeParse(id);
+  const idValidationResult = ProjectIdSchema.safeParse(id);
   if (!idValidationResult.success) {
     return new Response(JSON.stringify({ error: idValidationResult.error.format() }), {
       status: 400,
@@ -155,7 +148,7 @@ export async function PUT(context: APIContext): Promise<Response> {
   let projectData: ProjectUpdateCommand;
   try {
     const body = await context.request.json();
-    const bodyValidationResult = projectUpdateSchema.safeParse(body);
+    const bodyValidationResult = ProjectUpdateSchema.safeParse(body);
     if (!bodyValidationResult.success) {
       return new Response(
         JSON.stringify({ error: bodyValidationResult.error.format() }),
@@ -239,7 +232,7 @@ export async function DELETE(context: APIContext): Promise<Response> {
   const { id } = context.params;
   const { supabase } = context.locals;
 
-  const validationResult = idSchema.safeParse(id);
+  const validationResult = ProjectIdSchema.safeParse(id);
 
   if (!validationResult.success) {
     return new Response(JSON.stringify({ error: "Invalid project ID format." }), {

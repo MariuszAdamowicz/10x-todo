@@ -1,8 +1,7 @@
 import type { APIContext } from "astro";
-import { z } from "zod";
 import { TaskService } from "@/lib/services/task.service";
 import { DEFAULT_USER_ID, type SupabaseClient } from "@/db/supabase.client";
-import { TaskUpdateSchema } from "@/lib/schemas/task.schemas";
+import { TaskIdSchema, TaskUpdateSchema } from "@/lib/schemas/task.schemas";
 import {
   AuthorizationError,
   TaskNotFoundError,
@@ -10,11 +9,9 @@ import {
 
 export const prerender = false;
 
-const taskIdSchema = z.string().uuid();
-
 export async function GET({ params, locals }: APIContext) {
   const supabase = locals.supabase as SupabaseClient;
-  const validation = taskIdSchema.safeParse(params.id);
+  const validation = TaskIdSchema.safeParse(params.id);
 
   if (!validation.success) {
     return new Response(
@@ -55,7 +52,7 @@ export async function PATCH({ params, request, locals }: APIContext) {
   const supabase = locals.supabase as SupabaseClient;
 
   // 1. Validate Task ID
-  const idValidation = taskIdSchema.safeParse(params.id);
+  const idValidation = TaskIdSchema.safeParse(params.id);
   if (!idValidation.success) {
     return new Response(
       JSON.stringify({

@@ -2,14 +2,11 @@ import type { APIRoute } from 'astro';
 import { ProjectService } from '@/lib/services/project.service';
 import { DEFAULT_USER_ID } from '@/db/supabase.client';
 import { z } from 'zod';
+import { ProjectCreateSchema } from '@/lib/schemas/project.schemas';
 import type { ProjectCreateCommand } from '@/types';
+import { ZodError } from 'zod';
 
 export const prerender = false;
-
-const projectCreateSchema = z.object({
-	name: z.string().min(1),
-	description: z.string().nullable(),
-});
 
 export const GET: APIRoute = async ({ locals }) => {
 	const { supabase } = locals;
@@ -52,9 +49,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
 	let projectData: ProjectCreateCommand;
 	try {
 		const body = await request.json();
-		projectData = projectCreateSchema.parse(body);
+		projectData = ProjectCreateSchema.parse(body);
 	} catch (error) {
-		return new Response(JSON.stringify({ error: 'Bad Request', details: error }), {
+		if (error instanceof ZodError) {
+			return new Response(JSON.stringify({ error: 'Bad Request', details: error.flatten() }), {
+				status: 400,
+				headers: { 'Content-Type': 'application/json' },
+			});
+		}
+		return new Response(JSON.stringify({ error: 'Bad Request', details: 'Malformed JSON' }), {
 			status: 400,
 			headers: { 'Content-Type': 'application/json' },
 		});

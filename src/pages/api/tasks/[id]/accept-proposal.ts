@@ -1,5 +1,4 @@
 import type { APIRoute } from "astro";
-import { z } from "zod";
 import { DEFAULT_USER_ID } from "@/db/supabase.client";
 import { TaskService } from "@/lib/services/task.service";
 import {
@@ -7,16 +6,13 @@ import {
   AuthorizationError,
   InvalidStateError,
 } from "@/lib/errors";
-
-const paramsSchema = z.object({
-  id: z.string().uuid(),
-});
+import { TaskIdSchema } from "@/lib/schemas/task.schemas";
 
 export const POST: APIRoute = async (context) => {
   const { params, locals } = context;
   const supabase = locals.supabase;
 
-  const safeParams = paramsSchema.safeParse(params);
+  const safeParams = TaskIdSchema.safeParse(params.id);
 
   if (!safeParams.success) {
     return new Response(
@@ -28,7 +24,7 @@ export const POST: APIRoute = async (context) => {
     );
   }
 
-  const taskId = safeParams.data.id;
+  const taskId = safeParams.data;
   // Na razie używamy statycznego ID użytkownika, zgodnie z wymaganiami
   const userId = DEFAULT_USER_ID;
 
