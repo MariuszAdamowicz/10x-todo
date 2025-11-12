@@ -36,3 +36,12 @@ export const taskProposeStatusSchema = z.object({
 export const taskRejectProposalSchema = z.object({
 	comment: z.string().min(1, { message: 'Komentarz jest wymagany.' }),
 });
+
+export const ReorderTaskSchema = z.object({
+  id: z.string().uuid(),
+  order: z.number().int().min(0),
+});
+
+export const ReorderTasksDtoSchema = z.object({
+  tasks: z.array(ReorderTaskSchema).min(1),
+});

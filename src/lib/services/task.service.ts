@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@/db/supabase.client";
 import type {
+  ReorderTasksDto,
   Task,
   TaskCreateCommand,
   TaskProposeStatusCommand,
@@ -410,5 +411,62 @@ export class TaskService {
     }
 
     return updatedTask;
+  }
+
+  public async reorderTasks(
+    userId: string,
+    dto: ReorderTasksDto
+  ): Promise<void> {
+    const taskIds = dto.tasks.map((t) => t.id);
+
+    // 1. Fetch all tasks at once
+    const { data: tasks, error: fetchError } = await this.supabase
+      .from("tasks")
+      .select("id, project_id")
+      .in("id", taskIds);
+
+    if (fetchError) {
+      console.error("Error fetching tasks for reorder:", fetchError);
+      throw new Error("Could not fetch tasks for reordering.");
+    }
+
+    // 2. Verify all tasks were found
+    if (tasks.length !== taskIds.length) {
+      const foundIds = new Set(tasks.map((t) => t.id));
+      const notFound = taskIds.filter((id) => !foundIds.has(id));
+      throw new TaskNotFoundError(`Tasks not found: ${notFound.join(", ")}`);
+    }
+
+    // 3. Verify all tasks belong to the same project and get the project ID
+    const projectId = tasks[0]?.project_id;
+    if (!projectId || !tasks.every((t) => t.project_id === projectId)) {
+      throw new InvalidStateError(
+        "All tasks must belong to the same project."
+      );
+    }
+
+    // 4. Verify user has access to this project
+    const { data: project, error: projectError } = await this.supabase
+      .from("projects")
+      .select("id")
+      .eq("id", projectId)
+      .eq("user_id", userId)
+      .single();
+
+    if (projectError || !project) {
+      throw new AuthorizationError(
+        "User does not have access to this project."
+      );
+    }
+
+    // 5. Call RPC to update positions in a transaction
+    const { error: rpcError } = await this.supabase.rpc("reorder_tasks", {
+      tasks_to_reorder: dto.tasks,
+    });
+
+    if (rpcError) {
+      console.error("RPC error reordering tasks:", rpcError);
+      throw new Error("Failed to reorder tasks.");
+    }
   }
 }
