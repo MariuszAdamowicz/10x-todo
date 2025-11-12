@@ -1,7 +1,5 @@
 import { z } from 'zod';
 
-export const TaskIdSchema = z.string().uuid({ message: "Nieprawidłowy format identyfikatora zadania." });
-
 export const TaskCreateSchema = z.object({
   title: z.string().min(1, { message: 'Tytuł jest wymagany.' }),
   description: z.string().nullable().optional(),

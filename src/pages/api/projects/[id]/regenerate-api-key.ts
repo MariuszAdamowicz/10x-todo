@@ -1,13 +1,17 @@
 import type { APIContext } from "astro";
+import { z } from "zod";
 import { projectService } from "@/lib/services/project.service";
 import { DEFAULT_USER_ID } from "@/db/supabase.client";
 import {
   AuthorizationError,
   ProjectNotFoundError,
 } from "@/lib/errors";
-import { ProjectIdSchema } from "@/lib/schemas/project.schemas";
 
 export const prerender = false;
+
+const projectIdSchema = z.string().uuid({
+  message: "Nieprawidłowy format identyfikatora projektu.",
+});
 
 /**
  * @description
@@ -17,7 +21,7 @@ export async function POST({ params, locals }: APIContext) {
   const supabase = locals.supabase;
   const userId = DEFAULT_USER_ID;
 
-  const result = ProjectIdSchema.safeParse(params.id);
+  const result = projectIdSchema.safeParse(params.id);
 
   if (!result.success) {
     return new Response(
