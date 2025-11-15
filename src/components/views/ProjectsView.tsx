@@ -5,7 +5,7 @@ import ProjectListSkeleton from '@/components/features/projects/ProjectListSkele
 import EmptyState from '@/components/features/projects/EmptyState';
 import CreateProjectModal from '@/components/features/projects/CreateProjectModal';
 import { Button } from '@/components/ui/button';
-import { ProjectCreateCommand } from '@/types';
+import type { ProjectCreateCommand } from '@/types';
 
 const ProjectsView = () => {
 	const { projects, isLoading, error, createProject, refetch } = useProjects();
@@ -15,10 +15,6 @@ const ProjectsView = () => {
 		await createProject(data);
 		setIsModalOpen(false);
 	};
-
-	if (isLoading) {
-		return <ProjectListSkeleton />;
-	}
 
 	if (error) {
 		return (
@@ -38,7 +34,13 @@ const ProjectsView = () => {
 				<Button onClick={() => setIsModalOpen(true)}>Utwórz nowy projekt</Button>
 			</div>
 
-			{projects.length === 0 ? <EmptyState /> : <ProjectList projects={projects} />}
+			{isLoading ? (
+				<ProjectListSkeleton />
+			) : projects.length === 0 ? (
+				<EmptyState />
+			) : (
+				<ProjectList projects={projects} />
+			)}
 
 			<CreateProjectModal
 				isOpen={isModalOpen}
