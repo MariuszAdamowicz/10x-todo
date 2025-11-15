@@ -137,3 +137,18 @@ export type ReorderTasksDto = z.infer<typeof ReorderTasksDtoSchema>;
 export type TaskStatusGetDto = TaskStatus;
 
 // #endregion
+
+// #region View Models
+
+/**
+ * View model for displaying a project in the UI.
+ * Contains a simplified structure and a client-side navigation link.
+ */
+export type ProjectViewModel = {
+	id: string;
+	name: string;
+	description: string | null;
+	href: string; // e.g., /projects/uuid-1234
+};
+
+// #endregion
