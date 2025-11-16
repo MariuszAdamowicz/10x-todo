@@ -12,6 +12,16 @@ import type {
   ProjectUpdateResultDto,
 } from "@/types";
 
+const MOCK_PROJECT_DETAILS: ProjectGetDetailsDto = {
+  id: "1",
+  name: "Mock Project for Testing",
+  description: "This is a mock project description for testing purposes.",
+  api_key: "mock-api-key-123",
+  created_at: new Date().toISOString(),
+};
+
+const USE_MOCK_PROJECT_SERVICE = true; // Set to true for development/testing with mock data
+
 export class ProjectService {
   /**
    * Fetches a list of projects for a specific user.
@@ -54,6 +64,16 @@ export class ProjectService {
     id: string,
     userId: string
   ): Promise<ProjectGetDetailsDto> {
+    if (USE_MOCK_PROJECT_SERVICE) {
+      console.log("Using mock ProjectService.getProjectById");
+      console.log("Mock ID:", id, "Mock User ID:", userId);
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve(MOCK_PROJECT_DETAILS);
+        }, 500);
+      });
+    }
+
     const { data, error } = await supabase
       .from("projects")
       .select("id, name, description, api_key, created_at")

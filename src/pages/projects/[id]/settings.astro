@@ -1,6 +1,6 @@
 ---
 import Layout from '@/layouts/Layout.astro';
-import { getProjectById } from '@/lib/services/project.service';
+import { ProjectService } from '@/lib/services/project.service';
 import ProjectSettingsView from '@/components/views/ProjectSettingsView';
 
 export const prerender = false;
@@ -11,7 +11,18 @@ if (!id) {
   return Astro.redirect('/projects');
 }
 
-const { data: project, error } = await getProjectById(Astro.locals.supabase, id);
+const projectService = new ProjectService();
+let project = null;
+let error = null;
+
+try {
+  project = await projectService.getProjectById(Astro.locals.supabase, id, Astro.locals.user.id);
+} catch (e) {
+  error = e;
+}
+
+console.log("Project in settings.astro:", project);
+console.log("Error in settings.astro:", error);
 
 if (error) {
   // TODO: Obsługa błędów (np. przekierowanie na stronę błędu)

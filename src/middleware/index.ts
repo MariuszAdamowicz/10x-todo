@@ -47,6 +47,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
 		}
 	}
 	// TODO: Handle standard user session authentication (JWT) here in an `else` block.
+	if (!apiKey) {
+		// Temporary mock user for UI development until full authentication is implemented
+		context.locals.user = { id: 'mock-user-id' };
+	}
 
 	return next();
 });
