@@ -1,0 +1,72 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { ProjectService } from '@/lib/services/project.service';
+import { TaskService } from '@/lib/services/task.service';
+import type { Task } from '@/types';
+import { TaskList } from '@/components/features/tasks/TaskList';
+
+export const prerender = false;
+
+const { id } = Astro.params;
+
+if (!id) {
+  return Astro.redirect('/projects');
+}
+
+const projectService = new ProjectService();
+let project = null;
+let projectError = null;
+
+try {
+  project = await projectService.getProjectById(Astro.locals.supabase, id, Astro.locals.user.id);
+} catch (e) {
+  projectError = e;
+}
+
+if (projectError) {
+  console.error("Error fetching project:", projectError);
+  return Astro.redirect('/projects');
+}
+
+if (!project) {
+  return Astro.redirect('/404');
+}
+
+const taskService = new TaskService(Astro.locals.supabase);
+let initialTasks: Task[] = [];
+let tasksError = null;
+
+try {
+  const { data } = await taskService.getTasks({
+    filters: { projectId: project.id, parentId: null },
+    pagination: { page: 1, limit: 100 },
+    auth: { userId: Astro.locals.user.id },
+  });
+  initialTasks = data;
+} catch (e) {
+  tasksError = e;
+}
+
+if (tasksError) {
+  console.error("Error fetching tasks:", tasksError);
+  // Decide how to handle task fetching errors, maybe display a message on the page
+}
+---
+
+<Layout title={project.name}>
+  <div class="container mx-auto p-4">
+    <h1 class="text-4xl font-bold mb-4">{project.name}</h1>
+    {project.description && <p class="text-lg text-gray-700 mb-6">{project.description}</p>}
+    <p class="text-sm text-gray-500">ID: {project.id}</p>
+    <p class="text-sm text-gray-500">API Key: {project.api_key}</p>
+    <p class="text-sm text-gray-500">Created At: {new Date(project.created_at).toLocaleString()}</p>
+    <a href={`/projects/${project.id}/settings`} class="mt-8 inline-block bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+      Go to Settings
+    </a>
+
+    <div class="mt-8">
+      <h2 class="text-3xl font-bold mb-4">Tasks</h2>
+      <TaskList initialTasks={initialTasks} projectId={project.id} parentId={null} client:load />
+    </div>
+  </div>
+</Layout>

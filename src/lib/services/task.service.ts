@@ -13,6 +13,50 @@ import {
   TaskNotFoundError,
 } from "../errors";
 
+const MOCK_TASKS: Task[] = [
+  {
+    id: "task-1",
+    project_id: "1",
+    parent_id: null,
+    title: "Mock Task 1 for Project 1",
+    description: "This is the first mock task.",
+    status_id: 1, // To Do
+    position: 1,
+    is_delegated: false,
+    created_by_ai: false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: "task-2",
+    project_id: "1",
+    parent_id: null,
+    title: "Mock Task 2 for Project 1",
+    description: "This is the second mock task.",
+    status_id: 2, // In Progress
+    position: 2,
+    is_delegated: true,
+    created_by_ai: false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: "task-3",
+    project_id: "1",
+    parent_id: "task-2",
+    title: "Sub-task for Mock Task 2",
+    description: "This is a sub-task.",
+    status_id: 1, // To Do
+    position: 1,
+    is_delegated: false,
+    created_by_ai: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
+
+const USE_MOCK_TASK_SERVICE = true; // Set to true for development/testing with mock data
+
 export interface GetTasksFilters {
   projectId?: string;
   parentId?: string;
@@ -44,6 +88,30 @@ export class TaskService {
   public async getTasks(
     options: GetTasksOptions
   ): Promise<{ data: Task[]; count: number }> {
+    if (USE_MOCK_TASK_SERVICE) {
+      console.log("Using mock TaskService.getTasks");
+      const { filters } = options;
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          let filteredTasks = MOCK_TASKS.filter(task => {
+            let match = true;
+            if (filters.projectId && task.project_id !== filters.projectId) {
+              match = false;
+            }
+            if (filters.parentId !== undefined) {
+              if (filters.parentId === null && task.parent_id !== null) {
+                match = false;
+              } else if (filters.parentId !== null && task.parent_id !== filters.parentId) {
+                match = false;
+              }
+            }
+            return match;
+          });
+          resolve({ data: filteredTasks, count: filteredTasks.length });
+        }, 500);
+      });
+    }
+
     const { filters, pagination, auth } = options;
 
     // 1. Determine Project ID and check for auth
@@ -648,5 +716,3 @@ export class TaskService {
     }
 
   }
-
-  
