@@ -1,5 +1,7 @@
 import { defineMiddleware } from 'astro:middleware';
-import { supabaseClient, type SupabaseClient } from '@/db/supabase.client';
+import { supabaseClient, type SupabaseClient, DEFAULT_USER_ID } from '@/db/supabase.client';
+
+const USE_MOCK_SERVICES = import.meta.env.PUBLIC_MOCK_SERVICES === 'true';
 
 async function getProjectByApiKey(supabase: SupabaseClient, apiKey: string) {
 	const { data, error } = await supabase
@@ -45,12 +47,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
 				headers: { 'Content-Type': 'application/json' },
 			});
 		}
+	} else if (USE_MOCK_SERVICES) {
+		// For UI development with mocks, provide a default user ID
+		context.locals.user = { id: DEFAULT_USER_ID };
+	} else {
+		// For E2E testing without full auth, use the default user ID
+		context.locals.user = { id: DEFAULT_USER_ID };
 	}
 	// TODO: Handle standard user session authentication (JWT) here in an `else` block.
-	if (!apiKey) {
-		// Temporary mock user for UI development until full authentication is implemented
-		context.locals.user = { id: 'mock-user-id' };
-	}
 
 	return next();
 });

@@ -20,7 +20,7 @@ const MOCK_PROJECT_DETAILS: ProjectGetDetailsDto = {
   created_at: new Date().toISOString(),
 };
 
-const USE_MOCK_PROJECT_SERVICE = true; // Set to true for development/testing with mock data
+const USE_MOCK_SERVICES = import.meta.env.PUBLIC_MOCK_SERVICES === 'true';
 
 export class ProjectService {
   /**
@@ -64,7 +64,7 @@ export class ProjectService {
     id: string,
     userId: string
   ): Promise<ProjectGetDetailsDto> {
-    if (USE_MOCK_PROJECT_SERVICE) {
+    if (USE_MOCK_SERVICES) {
       console.log("Using mock ProjectService.getProjectById");
       console.log("Mock ID:", id, "Mock User ID:", userId);
       return new Promise((resolve) => {

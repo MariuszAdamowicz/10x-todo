@@ -55,7 +55,7 @@ const MOCK_TASKS: Task[] = [
   },
 ];
 
-const USE_MOCK_TASK_SERVICE = true; // Set to true for development/testing with mock data
+const USE_MOCK_SERVICES = import.meta.env.PUBLIC_MOCK_SERVICES === 'true';
 
 export interface GetTasksFilters {
   projectId?: string;
@@ -88,7 +88,7 @@ export class TaskService {
   public async getTasks(
     options: GetTasksOptions
   ): Promise<{ data: Task[]; count: number }> {
-    if (USE_MOCK_TASK_SERVICE) {
+    if (USE_MOCK_SERVICES) {
       console.log("Using mock TaskService.getTasks");
       const { filters } = options;
       return new Promise((resolve) => {

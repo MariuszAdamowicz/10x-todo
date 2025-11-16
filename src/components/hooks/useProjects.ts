@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { ProjectViewModel, ProjectCreateCommand } from '@/types';
+import { ProjectService } from '@/lib/services/project.service';
+import { supabaseClient, DEFAULT_USER_ID } from '@/db/supabase.client'; // Assuming supabaseClient is directly importable
 
 const MOCK_PROJECTS: ProjectViewModel[] = [
 	{
@@ -22,55 +24,71 @@ const MOCK_PROJECTS: ProjectViewModel[] = [
 	},
 ];
 
+const USE_MOCK_SERVICES = import.meta.env.PUBLIC_MOCK_SERVICES === 'true';
+
 const useProjects = () => {
 	const [projects, setProjects] = useState<ProjectViewModel[]>([]);
 	const [isLoading, setIsLoading] = useState<boolean>(true);
 	const [error, setError] = useState<Error | null>(null);
 
-	useEffect(() => {
-		// Simulate API call
+	const projectService = new ProjectService(); // Instantiate ProjectService
+
+	const fetchProjects = async () => {
 		setIsLoading(true);
 		setError(null);
-		setTimeout(() => {
-			try {
+		try {
+			if (USE_MOCK_SERVICES) {
 				setProjects(MOCK_PROJECTS);
-			} catch (err) {
-				setError(err as Error);
-			} finally {
-				setIsLoading(false);
+			} else {
+				const fetchedProjects = await projectService.getProjects(supabaseClient, DEFAULT_USER_ID);
+				setProjects(fetchedProjects.map(p => ({
+					id: p.id,
+					name: p.name,
+					description: p.description,
+					href: `/projects/${p.id}`,
+				})));
 			}
-		}, 1000);
+		} catch (err) {
+			setError(err as Error);
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	useEffect(() => {
+		fetchProjects();
 	}, []);
 
 	const createProject = async (data: ProjectCreateCommand): Promise<void> => {
-		// Simulate API call for creating a project
-		return new Promise((resolve) => {
-			setTimeout(() => {
-				const newProject: ProjectViewModel = {
-					id: String(projects.length + 1),
-					name: data.name,
-					description: data.description,
-					href: `/projects/${projects.length + 1}`,
-				};
-				setProjects((prev) => [newProject, ...prev]);
-				resolve();
-			}, 500);
-		});
+		setIsLoading(true); // Set loading state for creation
+		setError(null);
+		try {
+			if (USE_MOCK_SERVICES) {
+				return new Promise((resolve) => {
+					setTimeout(() => {
+						const newProject: ProjectViewModel = {
+							id: String(projects.length + 1),
+							name: data.name,
+							description: data.description,
+							href: `/projects/${projects.length + 1}`,
+						};
+						setProjects((prev) => [newProject, ...prev]);
+						resolve();
+					}, 500);
+				});
+			} else {
+				await projectService.createProject(supabaseClient, DEFAULT_USER_ID, data);
+				await fetchProjects(); // Refetch projects after creation
+			}
+		} catch (err) {
+			setError(err as Error);
+		} finally {
+			setIsLoading(false); // Reset loading state
+		}
 	};
 
 	const refetch = () => {
-		// Simulate API call
-		setIsLoading(true);
-		setError(null);
-		setTimeout(() => {
-			try {
-				setProjects(MOCK_PROJECTS);
-			} catch (err) {
-				setError(err as Error);
-			} finally {
-				setIsLoading(false);
-			}
-		}, 1000);
+		fetchProjects();
 	};
 
 	return { projects, isLoading, error, createProject, refetch };
