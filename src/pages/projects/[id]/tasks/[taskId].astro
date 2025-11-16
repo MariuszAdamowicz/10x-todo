@@ -1,0 +1,39 @@
+---
+import { ProjectAndTasksView } from '@/components/features/tasks/ProjectAndTasksView';
+import Layout from '@/layouts/Layout.astro';
+import { projectService } from '@/lib/services/project.service';
+import { taskService } from '@/lib/services/task.service';
+
+export const prerender = false;
+
+const { id, taskId } = Astro.params;
+
+if (!id) {
+	return Astro.redirect('/projects');
+}
+
+const [project, tasks, breadcrumbs] = await Promise.all([
+	projectService.getProject(id, Astro.locals.supabase),
+	taskService.getTasks(
+		{
+			filters: { projectId: id, parentId: taskId },
+			pagination: { page: 1, limit: 100 }, // TODO: Implement real pagination
+			auth: { userId: Astro.locals.user?.id },
+		},
+	),
+	taskService.getBreadcrumbs(id, taskId, Astro.locals.supabase),
+]);
+
+if (!project) {
+	return Astro.redirect('/projects');
+}
+---
+
+<Layout title=`${project.name} | Tasks`>
+	<ProjectAndTasksView
+		project={project}
+		tasks={tasks.data}
+		breadcrumbs={breadcrumbs}
+		client:load
+	/>
+</Layout>

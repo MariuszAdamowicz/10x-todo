@@ -151,4 +151,23 @@ export type ProjectViewModel = {
 	href: string; // e.g., /projects/uuid-1234
 };
 
+/**
+ * View model for representing a breadcrumb link in the UI.
+ */
+export interface IBreadcrumb {
+	name: string;
+	href: string;
+	current?: boolean;
+}
+
+/**
+ * View model for a task, extending the base DTO with UI-specific state.
+ */
+export interface TaskViewModel extends Task {
+	isMutating?: boolean;
+	isError?: boolean;
+	isPendingUserAction?: boolean;
+	aiProposalComment?: TaskComment;
+}
+
 // #endregion
