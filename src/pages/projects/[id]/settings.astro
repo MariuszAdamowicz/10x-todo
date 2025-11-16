@@ -1,0 +1,29 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { getProjectById } from '@/lib/services/project.service';
+import ProjectSettingsView from '@/components/views/ProjectSettingsView';
+
+export const prerender = false;
+
+const { id } = Astro.params;
+
+if (!id) {
+  return Astro.redirect('/projects');
+}
+
+const { data: project, error } = await getProjectById(Astro.locals.supabase, id);
+
+if (error) {
+  // TODO: Obsługa błędów (np. przekierowanie na stronę błędu)
+  console.error(error);
+  return Astro.redirect('/projects');
+}
+
+if (!project) {
+  return Astro.redirect('/404');
+}
+---
+
+<Layout title=`Settings for ${project.name}`>
+  <ProjectSettingsView initialProject={project} client:load />
+</Layout>
