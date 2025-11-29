@@ -61,8 +61,7 @@ export function TaskList({ initialTasks, projectId, parentId }: TaskListProps) {
 	};
 
 	const handleNavigate = (taskId: string) => {
-		// TODO: Implement navigation to sub-tasks
-		console.log('Navigating to task:', taskId);
+		window.location.href = `/projects/${projectId}/tasks/${taskId}`;
 	};
 
 	const handleAddSubtask = (taskId: string) => {

@@ -1,13 +1,29 @@
 import { useState } from 'react';
-import type { ReorderTasksDto, Task, TaskUpdateCommand, TaskViewModel } from '@/types';
+import type { ReorderTasksDto, TaskUpdateCommand, TaskViewModel, TaskWithComments } from '@/types';
 import { toast } from 'sonner';
 
+const mapToViewModel = (task: TaskWithComments): TaskViewModel => {
+  const isPendingUserAction = task.status_id === 4 || task.status_id === 5;
+  const aiProposalComment =
+    isPendingUserAction && task.task_comments && task.task_comments.length > 0
+      ? task.task_comments.find(c => c.author_is_ai)
+      : undefined;
+
+  return {
+    ...task,
+    isMutating: false,
+    isError: false,
+    isPendingUserAction,
+    aiProposalComment,
+  };
+};
+
 export function useTasks(
-  initialTasks: Task[],
+  initialTasks: TaskWithComments[],
   projectId: string,
   parentId: string | null
 ) {
-  const [tasks, setTasks] = useState<TaskViewModel[]>(initialTasks);
+  const [tasks, setTasks] = useState<TaskViewModel[]>(() => initialTasks.map(mapToViewModel));
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -26,6 +42,7 @@ export function useTasks(
       updated_at: new Date().toISOString(),
       created_by_ai: false,
       isMutating: true,
+      task_comments: [],
     };
 
     setTasks((currentTasks) => [...currentTasks, newTask]);
@@ -42,18 +59,19 @@ export function useTasks(
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create task');
+        const errorData = await response.json().catch(() => ({ message: 'Failed to create task' }));
+        throw new Error(errorData.message);
       }
 
-      const createdTask: Task = await response.json();
+      const createdTask: TaskWithComments = await response.json();
 
       setTasks((currentTasks) =>
         currentTasks.map((task) =>
-          task.id === optimisticId ? { ...task, ...createdTask, isMutating: false } : task
+          task.id === optimisticId ? mapToViewModel(createdTask) : task
         )
       );
     } catch (e) {
-      toast.error('Failed to create task. Please try again.');
+      toast.error((e as Error).message);
       setTasks((currentTasks) => currentTasks.filter((task) => task.id !== optimisticId));
       setError(e as Error);
     }
@@ -75,29 +93,22 @@ export function useTasks(
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update task');
+        const errorData = await response.json().catch(() => ({ message: 'Failed to update task' }));
+        throw new Error(errorData.message);
       }
 
-      const updatedTask: Task = await response.json();
+      const updatedTask: TaskWithComments = await response.json();
 
       setTasks((currentTasks) =>
         currentTasks.map((task) =>
-          task.id === taskId ? { ...task, ...updatedTask, isMutating: false } : task
+          task.id === taskId ? mapToViewModel(updatedTask) : task
         )
       );
     } catch (e) {
-      toast.error('Failed to update task. Please try again.');
+      toast.error((e as Error).message);
       setTasks(originalTasks);
       setError(e as Error);
     }
-  };
-
-  const delegateTask = async (taskId: string) => {
-    await updateTask(taskId, { is_delegated: true });
-  };
-
-  const cancelTask = async (taskId: string) => {
-    await updateTask(taskId, { status_id: 3 }); // 3: Canceled
   };
 
   const reorderTasks = async (reorderedTasks: TaskViewModel[]) => {
@@ -107,7 +118,7 @@ export function useTasks(
     const dto: ReorderTasksDto = {
       tasks: reorderedTasks.map((task, index) => ({
         id: task.id,
-        position: index + 1,
+        order: index, 
       })),
     };
 
@@ -118,11 +129,12 @@ export function useTasks(
         body: JSON.stringify(dto),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to reorder tasks');
+      if (response.status !== 204) {
+         const errorData = await response.json().catch(() => ({ message: 'Failed to reorder tasks' }));
+        throw new Error(errorData.message);
       }
     } catch (e) {
-      toast.error('Failed to reorder tasks. Please try again.');
+      toast.error((e as Error).message);
       setTasks(originalTasks);
       setError(e as Error);
     }
@@ -142,55 +154,57 @@ export function useTasks(
       });
 
       if (!response.ok) {
-        throw new Error('Failed to accept proposal');
+        const errorData = await response.json().catch(() => ({ message: 'Failed to accept proposal' }));
+        throw new Error(errorData.message);
       }
 
-      const updatedTask: Task = await response.json();
+      const updatedTask: TaskWithComments = await response.json();
       toast.success('Proposal accepted!');
       setTasks((currentTasks) =>
         currentTasks.map((task) =>
-          task.id === taskId ? { ...task, ...updatedTask, isMutating: false } : task
+          task.id === taskId ? mapToViewModel(updatedTask) : task
         )
       );
     } catch (e) {
-      toast.error('Failed to accept proposal. Please try again.');
+      toast.error((e as Error).message);
       setTasks(originalTasks);
       setError(e as Error);
     }
   };
 
-    const rejectProposal = async (taskId: string, comment: string) => {
-        const originalTasks = tasks;
-        setTasks((currentTasks) =>
-            currentTasks.map((task) =>
-                task.id === taskId ? { ...task, isMutating: true } : task
-            )
-        );
+  const rejectProposal = async (taskId: string, comment: string) => {
+    const originalTasks = tasks;
+    setTasks((currentTasks) =>
+      currentTasks.map((task) =>
+        task.id === taskId ? { ...task, isMutating: true } : task
+      )
+    );
 
-        try {
-            const response = await fetch(`/api/tasks/${taskId}/reject-proposal`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ comment }),
-            });
+    try {
+      const response = await fetch(`/api/tasks/${taskId}/reject-proposal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comment }),
+      });
 
-            if (!response.ok) {
-                throw new Error('Failed to reject proposal');
-            }
+      if (!response.ok) {
+         const errorData = await response.json().catch(() => ({ message: 'Failed to reject proposal' }));
+        throw new Error(errorData.message);
+      }
 
-            const updatedTask: Task = await response.json();
-            toast.success('Proposal rejected!');
-            setTasks((currentTasks) =>
-                currentTasks.map((task) =>
-                    task.id === taskId ? { ...task, ...updatedTask, isMutating: false } : task
-                )
-            );
-        } catch (e) {
-            toast.error('Failed to reject proposal. Please try again.');
-            setTasks(originalTasks);
-            setError(e as Error);
-        }
-    };
+      const updatedTask: TaskWithComments = await response.json();
+      toast.success('Proposal rejected!');
+      setTasks((currentTasks) =>
+        currentTasks.map((task) =>
+          task.id === taskId ? mapToViewModel(updatedTask) : task
+        )
+      );
+    } catch (e) {
+      toast.error((e as Error).message);
+      setTasks(originalTasks);
+      setError(e as Error);
+    }
+  };
 
   return {
     tasks,
@@ -198,8 +212,6 @@ export function useTasks(
     error,
     addTask,
     updateTask,
-    delegateTask,
-    cancelTask,
     reorderTasks,
     acceptProposal,
     rejectProposal,

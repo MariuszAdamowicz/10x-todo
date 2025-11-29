@@ -1,35 +1,42 @@
-import type { IBreadcrumb, Project, Task } from '@/types';
-import { useEffect, useState } from 'react';
+import type { IBreadcrumb, Project, Task, TaskWithComments } from '@/types';
+import { Settings } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Breadcrumbs } from './Breadcrumbs';
 import { TaskList } from './TaskList';
-import { TaskListSkeleton } from './TaskListSkeleton';
 
 export interface ProjectAndTasksViewProps {
   project: Project;
-  tasks: Task[];
+  initialTasks: TaskWithComments[];
   breadcrumbs: IBreadcrumb[];
+  parentId: string | null;
 }
 
-export function ProjectAndTasksView({ project, tasks, breadcrumbs }: ProjectAndTasksViewProps) {
-  // TODO: Get parentId from the URL
-  const parentId = null;
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000); // Simulate loading
-    return () => clearTimeout(timer);
-  }, []);
-
+export function ProjectAndTasksView({
+  project,
+  initialTasks,
+  breadcrumbs,
+  parentId,
+}: ProjectAndTasksViewProps) {
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
+    <div className="container mx-auto flex flex-col gap-4 p-4 sm:p-6 lg:p-8">
+      <div className="flex items-center justify-between">
+        <div className="flex-1">
+          <h1 className="text-3xl font-bold">{project.name}</h1>
+          {project.description && (
+            <p className="mt-2 text-muted-foreground">{project.description}</p>
+          )}
+        </div>
+        <a href={`/projects/${project.id}/settings`}>
+          <Button variant="outline" size="icon">
+            <Settings className="h-4 w-4" />
+            <span className="sr-only">Project Settings</span>
+          </Button>
+        </a>
+      </div>
+
       <Breadcrumbs items={breadcrumbs} />
-      {isLoading ? (
-        <TaskListSkeleton />
-      ) : (
-        <TaskList initialTasks={tasks} projectId={project.id} parentId={parentId} />
-      )}
+
+      <TaskList initialTasks={initialTasks} projectId={project.id} parentId={parentId} />
     </div>
   );
 }

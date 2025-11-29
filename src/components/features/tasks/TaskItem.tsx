@@ -4,14 +4,14 @@ import { GripVertical } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import type { TaskViewModel } from '@/types';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { ActionButtons } from './ActionButtons';
 import { ProposalNotification } from './ProposalNotification';
 
 export interface TaskItemProps {
   task: TaskViewModel;
   onUpdate: (id: string, data: Partial<TaskViewModel>) => void;
-  onNavigate: (id: string) => void;
+  onNavigate: (id:string) => void;
   onDelegate: (id: string) => void;
   onCancel: (id: string) => void;
   onAddSubtask: (id: string) => void;
@@ -32,11 +32,7 @@ export function TaskItem({
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(task.title);
 
-    const isPendingUserAction = useMemo(
-        () => task.status_id === 4 || task.status_id === 5,
-        [task.status_id]
-    );
-
+  const { isPendingUserAction } = task;
 
   const {
     attributes,
@@ -107,6 +103,7 @@ export function TaskItem({
             className={`flex-1 cursor-pointer ${
               isChecked ? 'text-muted-foreground line-through' : ''
             }`}
+            onClick={() => onNavigate(task.id)}
             onDoubleClick={() => !task.is_delegated && !isPendingUserAction && setIsEditing(true)}
           >
             {task.title}
@@ -121,7 +118,6 @@ export function TaskItem({
       </div>
       {isPendingUserAction && task.aiProposalComment && (
         <ProposalNotification
-            // @ts-ignore TODO: fix type
           comment={task.aiProposalComment}
           onAccept={() => onAcceptProposal(task.id)}
           onReject={() => onRejectProposal(task)}

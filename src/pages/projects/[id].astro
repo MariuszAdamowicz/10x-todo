@@ -1,72 +1,61 @@
 ---
+import { ProjectAndTasksView } from '@/components/features/tasks/ProjectAndTasksView';
 import Layout from '@/layouts/Layout.astro';
 import { ProjectService } from '@/lib/services/project.service';
 import { TaskService } from '@/lib/services/task.service';
-import type { Task } from '@/types';
-import { TaskList } from '@/components/features/tasks/TaskList';
+import type { IBreadcrumb, Project, Task } from '@/types';
 
 export const prerender = false;
 
-const { id } = Astro.params;
+const { id: projectId } = Astro.params;
+const { user, supabase } = Astro.locals;
 
-if (!id) {
+if (!projectId || !user) {
   return Astro.redirect('/projects');
 }
 
 const projectService = new ProjectService();
-let project = null;
-let projectError = null;
+const taskService = new TaskService(supabase);
 
-try {
-  project = await projectService.getProjectById(Astro.locals.supabase, id, Astro.locals.user.id);
-} catch (e) {
-  projectError = e;
-}
-
-if (projectError) {
-  console.error("Error fetching project:", projectError);
-  return Astro.redirect('/projects');
-}
-
-if (!project) {
-  return Astro.redirect('/404');
-}
-
-const taskService = new TaskService(Astro.locals.supabase);
+let project: Project | null = null;
 let initialTasks: Task[] = [];
-let tasksError = null;
+let breadcrumbs: IBreadcrumb[] = [];
+let error: Error | null = null;
 
 try {
-  const { data } = await taskService.getTasks({
-    filters: { projectId: project.id, parentId: null },
-    pagination: { page: 1, limit: 100 },
-    auth: { userId: Astro.locals.user.id },
-  });
-  initialTasks = data;
+  const [projectResult, tasksResult, breadcrumbsResult] = await Promise.all([
+    projectService.getProjectById(supabase, projectId, user.id),
+    taskService.getTasks({
+      filters: { projectId: projectId, parentId: undefined },
+      pagination: { page: 1, limit: 100 }, // TODO: Implement real pagination
+      auth: { userId: user.id },
+    }),
+    taskService.getBreadcrumbs(projectId, undefined, supabase),
+  ]);
+
+  project = projectResult;
+  initialTasks = tasksResult.data;
+  breadcrumbs = breadcrumbsResult;
 } catch (e) {
-  tasksError = e;
+  error = e instanceof Error ? e : new Error('An unknown error occurred');
+  console.error(e);
 }
 
-if (tasksError) {
-  console.error("Error fetching tasks:", tasksError);
-  // Decide how to handle task fetching errors, maybe display a message on the page
+// Redirect if the project is not found or there was a critical error
+if (!project) {
+  // TODO: Add a user-facing error message to the page it redirects to
+  return Astro.redirect('/projects');
 }
 ---
 
 <Layout title={project.name}>
-  <div class="container mx-auto p-4">
-    <h1 class="text-4xl font-bold mb-4">{project.name}</h1>
-    {project.description && <p class="text-lg text-gray-700 mb-6">{project.description}</p>}
-    <p class="text-sm text-gray-500">ID: {project.id}</p>
-    <p class="text-sm text-gray-500">API Key: {project.api_key}</p>
-    <p class="text-sm text-gray-500">Created At: {new Date(project.created_at).toLocaleString()}</p>
-    <a href={`/projects/${project.id}/settings`} class="mt-8 inline-block bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-      Go to Settings
-    </a>
-
-    <div class="mt-8">
-      <h2 class="text-3xl font-bold mb-4">Tasks</h2>
-      <TaskList initialTasks={initialTasks} projectId={project.id} parentId={null} client:load />
-    </div>
-  </div>
+  <ProjectAndTasksView
+    project={project}
+    initialTasks={initialTasks}
+    breadcrumbs={breadcrumbs}
+    parentId={null}
+    client:load
+  />
+  <!-- TODO: Add a proper error display component -->
+  {error && <p class="text-red-500 p-4">Error loading project data: {error.message}</p>}
 </Layout>

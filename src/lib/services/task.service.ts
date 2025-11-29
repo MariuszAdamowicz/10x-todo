@@ -5,6 +5,7 @@ import type {
   TaskCreateCommand,
   TaskProposeStatusCommand,
   TaskUpdateCommand,
+  TaskWithComments,
 } from "@/types";
 import {
   AuthorizationError,
@@ -13,7 +14,7 @@ import {
   TaskNotFoundError,
 } from "../errors";
 
-const MOCK_TASKS: Task[] = [
+const MOCK_TASKS: TaskWithComments[] = [
   {
     id: "task-1",
     project_id: "1",
@@ -26,6 +27,7 @@ const MOCK_TASKS: Task[] = [
     created_by_ai: false,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    task_comments: [],
   },
   {
     id: "task-2",
@@ -39,6 +41,7 @@ const MOCK_TASKS: Task[] = [
     created_by_ai: false,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    task_comments: [],
   },
   {
     id: "task-3",
@@ -52,6 +55,7 @@ const MOCK_TASKS: Task[] = [
     created_by_ai: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    task_comments: [],
   },
 ];
 
@@ -59,7 +63,7 @@ const USE_MOCK_SERVICES = import.meta.env.PUBLIC_MOCK_SERVICES === 'true';
 
 export interface GetTasksFilters {
   projectId?: string;
-  parentId?: string;
+  parentId?: string | null;
   statusId?: number;
   delegated?: boolean;
 }
@@ -87,7 +91,7 @@ export class TaskService {
 
   public async getTasks(
     options: GetTasksOptions
-  ): Promise<{ data: Task[]; count: number }> {
+  ): Promise<{ data: TaskWithComments[]; count: number }> {
     if (USE_MOCK_SERVICES) {
       console.log("Using mock TaskService.getTasks");
       const { filters } = options;
@@ -98,7 +102,7 @@ export class TaskService {
             if (filters.projectId && task.project_id !== filters.projectId) {
               match = false;
             }
-            if (filters.parentId !== undefined) {
+             if (filters.parentId !== undefined) {
               if (filters.parentId === null && task.parent_id !== null) {
                 match = false;
               } else if (filters.parentId !== null && task.parent_id !== filters.parentId) {
@@ -141,15 +145,15 @@ export class TaskService {
       throw new Error("Project ID could not be determined.");
     }
 
-    // 2. Build dynamic query
-    const query = this.supabase.from("tasks").select("*", { count: "exact" });
+    // 2. Build dynamic query. Embed comments.
+    const query = this.supabase.from("tasks").select("*, task_comments(*)", { count: "exact" });
 
     // 3. Apply filters
     query.eq("project_id", projectId);
 
     if (filters.parentId) {
       query.eq("parent_id", filters.parentId);
-    } else {
+    } else if (filters.parentId === null) {
       query.is("parent_id", null);
     }
 
@@ -596,123 +600,66 @@ export class TaskService {
   
 
     public async getBreadcrumbs(
-
       projectId: string,
-
       taskId: string | undefined,
-
       supabase: SupabaseClient
-
     ): Promise<IBreadcrumb[]> {
-
-      const breadcrumbs: IBreadcrumb[] = [];
-
+      const breadcrumbs: IBreadcrumb[] = [
+        { name: 'Projects', href: '/projects' }
+      ];
   
-
       // 1. Get project details
-
       const { data: project, error: projectError } = await supabase
-
         .from('projects')
-
         .select('id, name')
-
         .eq('id', projectId)
-
         .single();
-
   
-
       if (projectError || !project) {
-
         throw new ProjectNotFoundError();
-
       }
-
   
-
       breadcrumbs.push({
-
         name: project.name,
-
-        href: `/projects/${project.id}/tasks`,
-
+        href: `/projects/${project.id}`,
       });
-
   
-
       if (!taskId) {
-
-        breadcrumbs[0].current = true;
-
+        breadcrumbs[breadcrumbs.length - 1].current = true;
         return breadcrumbs;
-
       }
-
   
-
       // 2. Recursively fetch parent tasks
-
       const taskCrumbs: IBreadcrumb[] = [];
-
       let currentTaskId: string | null = taskId;
-
   
-
       while (currentTaskId) {
-
         const { data: task, error: taskError } = await supabase
-
           .from('tasks')
-
           .select('id, title, parent_id')
-
           .eq('id', currentTaskId)
-
           .single();
-
   
-
         if (taskError || !task) {
-
           // If a task in the chain is not found, stop building the breadcrumb
-
           break;
-
         }
-
   
-
         taskCrumbs.unshift({
-
           name: task.title,
-
           href: `/projects/${projectId}/tasks/${task.id}`,
-
         });
-
   
-
         currentTaskId = task.parent_id;
-
       }
-
   
-
       // 3. Combine and set the 'current' flag
-
       const finalBreadcrumbs = [...breadcrumbs, ...taskCrumbs];
-
       if (finalBreadcrumbs.length > 0) {
-
         finalBreadcrumbs[finalBreadcrumbs.length - 1].current = true;
-
       }
-
   
-
       return finalBreadcrumbs;
-
     }
 
   }

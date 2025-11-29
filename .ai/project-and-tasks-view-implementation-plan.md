@@ -16,26 +16,26 @@ Hierarchia komponentów została zaprojektowana w celu oddzielenia logiki serwer
 
 ```
 - ProjectAndTasksView (React Component: /src/components/features/tasks/ProjectAndTasksView.tsx)
-  - Layout (Astro)
-    - Header (Astro/React)
-      - Breadcrumbs (React)
-    - MainContent
-      - TaskList (React)
-        - TaskListHeader (React)
-          - AddTaskForm (React)
-        - TaskItem (React)
-          - Checkbox (do zmiany statusu)
-          - TaskTitle (edytowalny tytuł)
-          - ActionButtons (React)
-            - Button (Deleguj)
-            - Button (Dodaj pod-zadanie)
-            - DropdownMenu (Anuluj, etc.)
-          - ProposalNotification (React)
-            - Button (Akceptuj)
-            - Button (Odrzuć -> otwiera Dialog)
-        - TaskListSkeleton (React)
-      - RejectProposalDialog (React)
-      - Toaster/Sonner (React, globalny)
+  - ProjectHeader (React)
+    - Project Title & Description
+    - Settings Button
+  - Breadcrumbs (React)
+  - TaskList (React)
+    - TaskListHeader (React)
+      - AddTaskForm (React)
+    - TaskItem (React)
+      - Checkbox (do zmiany statusu)
+      - TaskTitle (edytowalny tytuł)
+      - ActionButtons (React)
+        - Button (Deleguj)
+        - Button (Dodaj pod-zadanie)
+        - DropdownMenu (Anuluj, etc.)
+      - ProposalNotification (React)
+        - Button (Akceptuj)
+        - Button (Odrzuć -> otwiera Dialog)
+    - TaskListSkeleton (React)
+- RejectProposalDialog (React, rendered alongside ProjectAndTasksView)
+- Toaster/Sonner (React, global)
 ```
 
 ## 4. Szczegóły komponentów

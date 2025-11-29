@@ -1,39 +1,67 @@
 ---
 import { ProjectAndTasksView } from '@/components/features/tasks/ProjectAndTasksView';
 import Layout from '@/layouts/Layout.astro';
-import { projectService } from '@/lib/services/project.service';
-import { taskService } from '@/lib/services/task.service';
+import { ProjectService } from '@/lib/services/project.service';
+import { TaskService } from '@/lib/services/task.service';
+import type { IBreadcrumb, Project, Task } from '@/types';
 
 export const prerender = false;
 
-const { id, taskId } = Astro.params;
+const { id: projectId, taskId } = Astro.params;
+const { user, supabase } = Astro.locals;
 
-if (!id) {
-	return Astro.redirect('/projects');
+if (!projectId || !user) {
+  // If there's no project ID or user, we can't proceed.
+  return Astro.redirect('/projects');
 }
 
-const [project, tasks, breadcrumbs] = await Promise.all([
-	projectService.getProject(id, Astro.locals.supabase),
-	taskService.getTasks(
-		{
-			filters: { projectId: id, parentId: taskId },
-			pagination: { page: 1, limit: 100 }, // TODO: Implement real pagination
-			auth: { userId: Astro.locals.user?.id },
-		},
-	),
-	taskService.getBreadcrumbs(id, taskId, Astro.locals.supabase),
-]);
+const projectService = new ProjectService();
+const taskService = new TaskService(supabase);
 
+let project: Project | null = null;
+let initialTasks: Task[] = [];
+let breadcrumbs: IBreadcrumb[] = [];
+let error: Error | null = null;
+
+try {
+  // Fetch project details, the tasks for the current view (sub-tasks),
+  // and the breadcrumb trail all at once.
+  const [projectResult, tasksResult, breadcrumbsResult] = await Promise.all([
+    projectService.getProjectById(supabase, projectId, user.id),
+    taskService.getTasks({
+      filters: { projectId, parentId: taskId },
+      pagination: { page: 1, limit: 100 }, // TODO: Implement real pagination
+      auth: { userId: user.id },
+    }),
+    taskService.getBreadcrumbs(projectId, taskId, supabase),
+  ]);
+
+  project = projectResult;
+  initialTasks = tasksResult.data;
+  breadcrumbs = breadcrumbsResult;
+
+} catch (e) {
+  error = e instanceof Error ? e : new Error('An unknown error occurred');
+  console.error('Error fetching page data:', e);
+}
+
+// If the project doesn't exist, the user doesn't have access,
+// or another critical error occurred, redirect them.
 if (!project) {
-	return Astro.redirect('/projects');
+  // It's good practice to inform the user why they are being redirected.
+  // This could be done via a query parameter or a flash message system.
+  return Astro.redirect('/projects?error=project_not_found');
 }
 ---
 
-<Layout title=`${project.name} | Tasks`>
-	<ProjectAndTasksView
-		project={project}
-		tasks={tasks.data}
-		breadcrumbs={breadcrumbs}
-		client:load
-	/>
+<Layout title={`${project.name} | Tasks`}>
+  <ProjectAndTasksView
+    project={project}
+    initialTasks={initialTasks}
+    breadcrumbs={breadcrumbs}
+    parentId={taskId ?? null}
+    client:load
+  />
+  <!-- A simple error display. In a real app, this might be a toast notification. -->
+  {error && <p class="text-red-500 p-4">Error loading task data: {error.message}</p>}
 </Layout>

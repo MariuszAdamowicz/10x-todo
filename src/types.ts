@@ -17,6 +17,9 @@ export type TaskStatus = Tables<'task_statuses'>;
 /** Represents the full "task_comments" table entity. */
 export type TaskComment = Tables<'task_comments'>;
 
+/** Represents a task with its associated comments embedded. */
+export type TaskWithComments = Task & { task_comments?: TaskComment[] };
+
 // #endregion
 
 // #region Project DTOs and Command Models
@@ -163,7 +166,7 @@ export interface IBreadcrumb {
 /**
  * View model for a task, extending the base DTO with UI-specific state.
  */
-export interface TaskViewModel extends Task {
+export interface TaskViewModel extends TaskWithComments {
 	isMutating?: boolean;
 	isError?: boolean;
 	isPendingUserAction?: boolean;
