@@ -7,7 +7,18 @@ Widok "Moje Projekty" jest głównym ekranem po zalogowaniu, który umożliwia u
 - **Ścieżka:** `/projects`
 - **Dostęp:** Widok powinien być dostępny tylko dla zalogowanych użytkowników. Niezalogowani użytkownicy powinni być przekierowywani na stronę logowania.
 
-## 3. Struktura komponentów
+## 3. Globalny nagłówek i układ
+Widok "Moje Projekty" jest osadzony w głównym układzie aplikacji, który zapewnia spójny nagłówek i stopkę na wszystkich stronach.
+
+### `Layout.astro`
+- **Lokalizacja:** `/src/layouts/Layout.astro`
+- **Opis:** Główny plik układu, który owija każdą stronę. Będzie zawierał globalny komponent `Header.astro`.
+
+### `Header.astro`
+- **Lokalizacja:** `/src/components/layout/Header.astro` (do utworzenia)
+- **Opis:** Komponent nagłówka, który będzie wyświetlał nazwę aplikacji, np. "10x To-Do App", i ewentualnie linki nawigacyjne. Zostanie umieszczony w `Layout.astro`, aby był widoczny we wszystkich widokach.
+
+## 4. Struktura komponentów
 Widok zostanie zaimplementowany jako strona Astro (`.astro`), która renderuje główny komponent kliencki React (`.tsx`).
 
 ```
