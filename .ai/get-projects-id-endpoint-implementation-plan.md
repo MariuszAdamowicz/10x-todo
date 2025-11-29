@@ -1,9 +1,11 @@
 # API Endpoint Implementation Plan: GET /projects/{id}
 
 ## 1. Przegląd punktu końcowego
+
 Ten punkt końcowy umożliwia pobranie szczegółowych informacji o pojedynczym projekcie na podstawie jego unikalnego identyfikatora (ID). Odpowiedź zawiera kluczowe dane projektu, w tym jego nazwę, opis oraz klucz API. Dostęp do zasobu jest ograniczony wyłącznie do uwierzytelnionego użytkownika, który jest właścicielem danego projektu.
 
 ## 2. Szczegóły żądania
+
 - **Metoda HTTP:** `GET`
 - **Struktura URL:** `/api/projects/{id}`
 - **Parametry:**
@@ -13,15 +15,14 @@ Ten punkt końcowy umożliwia pobranie szczegółowych informacji o pojedynczym 
 - **Request Body:** Brak.
 
 ## 3. Wykorzystywane typy
+
 - **DTO odpowiedzi:** `ProjectGetDetailsDto`
   ```typescript
-  export type ProjectGetDetailsDto = Pick<
-    Project,
-    'id' | 'name' | 'description' | 'api_key' | 'created_at'
-  >;
+  export type ProjectGetDetailsDto = Pick<Project, "id" | "name" | "description" | "api_key" | "created_at">;
   ```
 
 ## 4. Szczegóły odpowiedzi
+
 - **Odpowiedź sukcesu (200 OK):**
   ```json
   {
@@ -39,6 +40,7 @@ Ten punkt końcowy umożliwia pobranie szczegółowych informacji o pojedynczym 
   - `500 Internal Server Error`: W przypadku nieoczekiwanego błędu serwera.
 
 ## 5. Przepływ danych
+
 1.  Żądanie `GET` trafia do pliku `src/pages/api/projects/[id].ts`.
 2.  Middleware (`src/middleware/index.ts`) weryfikuje sesję użytkownika Supabase. Jeśli użytkownik nie jest uwierzytelniony, zwraca odpowiedź `401 Unauthorized`.
 3.  Handler `GET` w pliku `[id].ts` pobiera `id` projektu z `Astro.params`.
@@ -57,15 +59,18 @@ Ten punkt końcowy umożliwia pobranie szczegółowych informacji o pojedynczym 
 10. Handler API zwraca odpowiedź `200 OK` z danymi projektu w formacie JSON.
 
 ## 6. Względy bezpieczeństwa
+
 - **Uwierzytelnianie:** Każde żądanie musi być uwierzytelnione. Middleware Astro jest odpowiedzialne za weryfikację tokena sesji Supabase i zapewnienie, że `context.locals.user` jest dostępne.
 - **Autoryzacja:** Logika autoryzacji jest zaimplementowana w warstwie serwisu (`project.service.ts`). Zapytanie do bazy danych bezwzględnie filtruje projekty po `user_id` zalogowanego użytkownika, co zapobiega atakom typu IDOR (Insecure Direct Object Reference) i uniemożliwia dostęp do projektów innych użytkowników.
 - **Walidacja danych wejściowych:** Parametr `id` jest rygorystycznie walidowany jako UUID, co chroni przed potencjalnymi atakami, np. SQL Injection, chociaż użycie ORM Supabase już zapewnia ochronę.
 
 ## 7. Rozważania dotyczące wydajności
+
 - Zapytanie do bazy danych jest proste i wykorzystuje klucz główny (`id`) oraz indeksowany klucz obcy (`user_id`), co zapewnia wysoką wydajność.
 - Nie przewiduje się problemów z wydajnością przy standardowym obciążeniu. Ilość danych zwracanych w odpowiedzi jest niewielka.
 
 ## 8. Etapy wdrożenia
+
 1.  **Utworzenie pliku endpointu:** Stwórz nowy plik `src/pages/api/projects/[id].ts`.
 2.  **Implementacja handlera GET:** W pliku `[id].ts` zaimplementuj handler `GET` dla `APIContext`.
 3.  **Walidacja ID projektu:** W handlerze `GET` dodaj logikę walidacji parametru `id` z `Astro.params` przy użyciu biblioteki `zod`.

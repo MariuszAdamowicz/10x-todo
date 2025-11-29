@@ -1,10 +1,11 @@
-
 # API Endpoint Implementation Plan: POST /tasks/{id}/accept-proposal
 
 ## 1. Endpoint Overview
+
 Ten endpoint pozwala deweloperowi (użytkownikowi) na zaakceptowanie propozycji zmiany statusu zadania, która została zgłoszona przez asystenta AI. Po pomyślnym wykonaniu, status zadania jest finalnie zmieniany na na "Done" lub "Canceled".
 
 ## 2. Request Details
+
 - **HTTP Method**: `POST`
 - **URL Structure**: `/api/tasks/{id}/accept-proposal`
 - **Parameters**:
@@ -13,11 +14,13 @@ Ten endpoint pozwala deweloperowi (użytkownikowi) na zaakceptowanie propozycji 
 - **Request Body**: Brak (puste ciało).
 
 ## 3. Used Types
+
 - `Task`: Pełny typ encji zadania z `src/types.ts`.
 - `TaskStatus`: Typ encji statusu zadania z `src/types.ts`.
 - `z.object({ id: z.string().uuid() })`: Schemat Zod do walidacji parametru `id` z URL.
 
 ## 4. Response Details
+
 - **Success (200 OK)**: Zwraca pełny, zaktualizowany obiekt zadania (`Task`).
   ```json
   {
@@ -42,6 +45,7 @@ Ten endpoint pozwala deweloperowi (użytkownikowi) na zaakceptowanie propozycji 
   - `409 Conflict`: Jeśli zadanie nie ma statusu oczekującego na akceptację (np. "Done, pending acceptance").
 
 ## 5. Data Flow
+
 1.  Endpoint odbiera żądanie `POST` z `id` zadania w URL.
 2.  Następuje walidacja formatu `id` przy użyciu `zod`. Jeśli jest nieprawidłowy, zwracany jest błąd `400`.
 3.  Pobierana jest sesja użytkownika z `context.locals.supabase` w celu weryfikacji tożsamości. Jeśli sesja nie istnieje, zwracany jest błąd `401`.
@@ -57,15 +61,18 @@ Ten endpoint pozwala deweloperowi (użytkownikowi) na zaakceptowanie propozycji 
 7.  Endpoint zwraca klientowi odpowiedź `200 OK` wraz ze zaktualizowanym zadaniem.
 
 ## 6. Security Considerations
+
 - **Authentication**: Endpoint musi być chroniony i dostępny tylko dla zalogowanych użytkowników. Middleware Astro (`src/middleware/index.ts`) powinno weryfikować sesję Supabase.
 - **Authorization**: Logika biznesowa w serwisie musi rygorystycznie sprawdzać, czy zalogowany użytkownik jest właścicielem projektu, do którego należy zadanie. Należy wykorzystać `user_id` z sesji do filtrowania zapytań do bazy danych.
 - **Input Validation**: Parametr `id` musi być walidowany jako UUID, aby zapobiec błędom zapytań i potencjalnym atakom.
 
 ## 7. Performance Considerations
+
 - Operacja jest stosunkowo prosta i nie powinna stanowić problemu wydajnościowego.
 - Należy upewnić się, że kolumny używane w klauzulach `WHERE` (`id`, `project_id`, `user_id`) są odpowiednio zindeksowane w bazie danych, co jest standardem dla kluczy głównych i obcych.
 
 ## 8. Implementation Steps
+
 1.  **Create Endpoint File**: Utwórz plik `src/pages/api/tasks/[id]/accept-proposal.ts`.
 2.  **Define Zod Schema**: W pliku endpointu zdefiniuj schemat `zod` do walidacji `id` z `Astro.params`.
 3.  **Implement Endpoint Logic**:

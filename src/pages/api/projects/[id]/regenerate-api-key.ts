@@ -2,10 +2,7 @@ import type { APIContext } from "astro";
 import { z } from "zod";
 import { projectService } from "@/lib/services/project.service";
 import { DEFAULT_USER_ID } from "@/db/supabase.client";
-import {
-  AuthorizationError,
-  ProjectNotFoundError,
-} from "@/lib/errors";
+import { AuthorizationError, ProjectNotFoundError } from "@/lib/errors";
 
 export const prerender = false;
 
@@ -35,11 +32,7 @@ export async function POST({ params, locals }: APIContext) {
   const projectId = result.data;
 
   try {
-    const data = await projectService.regenerateApiKey(
-      projectId,
-      userId,
-      supabase
-    );
+    const data = await projectService.regenerateApiKey(projectId, userId, supabase);
     return new Response(JSON.stringify(data), { status: 200 });
   } catch (error) {
     if (error instanceof ProjectNotFoundError) {
@@ -53,11 +46,8 @@ export async function POST({ params, locals }: APIContext) {
       });
     }
     console.error(error);
-    return new Response(
-      JSON.stringify({ message: "Wystąpił wewnętrzny błąd serwera" }),
-      {
-        status: 500,
-      }
-    );
+    return new Response(JSON.stringify({ message: "Wystąpił wewnętrzny błąd serwera" }), {
+      status: 500,
+    });
   }
 }

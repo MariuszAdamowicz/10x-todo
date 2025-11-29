@@ -1,9 +1,11 @@
 # Plan Implementacji Endpointu API: POST /tasks/{id}/reject-proposal
 
 ## 1. Przegląd Endpointu
+
 Ten endpoint pozwala uwierzytelnionemu użytkownikowi na odrzucenie propozycji zmiany statusu zadania, która została zgłoszona przez AI. Odrzucenie propozycji cofa status zadania do stanu "Do zrobienia" (`To Do`) i zapisuje komentarz z powodem odrzucenia. Endpoint jest dostępny tylko dla użytkowników.
 
 ## 2. Szczegóły Żądania
+
 - **Metoda HTTP:** `POST`
 - **Struktura URL:** `/api/tasks/{id}/reject-proposal`
 - **Parametry:**
@@ -20,10 +22,11 @@ Ten endpoint pozwala uwierzytelnionemu użytkownikowi na odrzucenie propozycji z
     ```
 
 ## 3. Używane Typy
+
 - **Model Polecenia (Command Model):** `TaskRejectProposalCommand` - definiuje strukturę ciała żądania.
   ```typescript
   // src/types.ts
-  export type TaskRejectProposalCommand = Pick<TaskComment, 'comment'>;
+  export type TaskRejectProposalCommand = Pick<TaskComment, "comment">;
   ```
 - **DTO Odpowiedzi (Response DTO):** `TaskGetDto` (alias dla `Task`) - pełny obiekt zaktualizowanego zadania.
   ```typescript
@@ -32,6 +35,7 @@ Ten endpoint pozwala uwierzytelnionemu użytkownikowi na odrzucenie propozycji z
   ```
 
 ## 4. Przepływ Danych
+
 1.  Użytkownik wysyła żądanie `POST` na adres `/api/tasks/{id}/reject-proposal` z wymaganym `id` zadania w URL oraz `comment` w ciele żądania.
 2.  Middleware Astro weryfikuje sesję użytkownika. Jeśli sesja jest nieprawidłowa, zwraca błąd `401 Unauthorized`.
 3.  Handler endpointu w `src/pages/api/tasks/[id]/reject-proposal.ts` parsuje i waliduje `id` (musi być UUID) oraz ciało żądania (za pomocą Zod, `comment` nie może być pusty).
@@ -47,12 +51,15 @@ Ten endpoint pozwala uwierzytelnionemu użytkownikowi na odrzucenie propozycji z
 7.  Handler serializuje obiekt zadania do formatu JSON i wysyła go w odpowiedzi z kodem statusu `200 OK`.
 
 ## 5. Kwestie Bezpieczeństwa
+
 - **Uwierzytelnianie:** Dostęp do endpointu musi być chroniony. Middleware Astro musi sprawdzić, czy użytkownik jest zalogowany, zanim przekaże żądanie dalej.
 - **Autoryzacja:** Logika biznesowa w serwisie musi bezwzględnie weryfikować, czy zadanie należy do projektu, którego właścicielem jest uwierzytelniony użytkownik. Zapobiega to modyfikacji zadań przez nieuprawnione osoby.
 - **Walidacja Danych Wejściowych:** Parametr `id` musi być walidowany jako UUID, a `comment` jako niepusty string, aby zapobiec atakom typu SQL Injection lub XSS. Należy użyć biblioteki Zod do walidacji schematu.
 
 ## 6. Obsługa Błędów
+
 Endpoint powinien obsługiwać następujące scenariusze błędów, zwracając odpowiednie kody statusu HTTP:
+
 - **400 Bad Request:**
   - `id` w URL nie jest poprawnym UUID.
   - Ciało żądania jest niepoprawne (np. brak pola `comment` lub jest ono puste).
@@ -68,10 +75,12 @@ Endpoint powinien obsługiwać następujące scenariusze błędów, zwracając o
   - Wystąpił błąd serwera, np. niepowodzenie transakcji bazodanowej.
 
 ## 7. Kwestie Wydajności
+
 - Operacje bazodanowe (odczyt, aktualizacja, wstawienie) powinny być wykonane w ramach jednej transakcji, aby zapewnić spójność danych i zminimalizować liczbę zapytań do bazy.
 - Zapytanie pobierające zadanie powinno być zoptymalizowane i wykorzystywać indeksy na `id` zadania.
 
 ## 8. Kroki Implementacyjne
+
 1.  **Utworzenie pliku endpointu:** Stwórz nowy plik `src/pages/api/tasks/[id]/reject-proposal.ts`.
 2.  **Walidacja danych wejściowych:**
     - W pliku `reject-proposal.ts`, zaimplementuj walidację parametru `id` z `Astro.params`.

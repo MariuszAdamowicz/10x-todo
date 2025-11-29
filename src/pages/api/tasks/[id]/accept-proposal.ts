@@ -2,11 +2,7 @@ import type { APIRoute } from "astro";
 import { z } from "zod";
 import { DEFAULT_USER_ID } from "@/db/supabase.client";
 import { TaskService } from "@/lib/services/task.service";
-import {
-  TaskNotFoundError,
-  AuthorizationError,
-  InvalidStateError,
-} from "@/lib/errors";
+import { TaskNotFoundError, AuthorizationError, InvalidStateError } from "@/lib/errors";
 
 const paramsSchema = z.object({
   id: z.string().uuid(),
@@ -60,9 +56,9 @@ export const POST: APIRoute = async (context) => {
       });
     }
     console.error("Error in accept-proposal endpoint:", error);
-    return new Response(
-      JSON.stringify({ error: "An unexpected error occurred." }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "An unexpected error occurred." }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 };

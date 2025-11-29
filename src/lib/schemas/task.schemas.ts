@@ -1,7 +1,7 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const TaskCreateSchema = z.object({
-  title: z.string().min(1, { message: 'Tytuł jest wymagany.' }),
+  title: z.string().min(1, { message: "Tytuł jest wymagany." }),
   description: z.string().nullable().optional(),
   parent_id: z.string().uuid().nullable().optional(),
   project_id: z.string().uuid().optional(), // Wymagane dla użytkownika, opcjonalne dla AI
@@ -15,8 +15,8 @@ export const TaskUpdateSchema = z
     is_delegated: z.boolean(),
   })
   .partial()
-  .refine(data => Object.keys(data).length > 0, {
-    message: 'Request body must not be empty.',
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "Request body must not be empty.",
   });
 
 export const GetTasksQuerySchema = z.object({
@@ -29,12 +29,12 @@ export const GetTasksQuerySchema = z.object({
 });
 
 export const taskProposeStatusSchema = z.object({
-	new_status_id: z.number().int(),
-	comment: z.string().min(1, { message: 'Komentarz jest wymagany.' }),
+  new_status_id: z.number().int(),
+  comment: z.string().min(1, { message: "Komentarz jest wymagany." }),
 });
 
 export const taskRejectProposalSchema = z.object({
-	comment: z.string().min(1, { message: 'Komentarz jest wymagany.' }),
+  comment: z.string().min(1, { message: "Komentarz jest wymagany." }),
 });
 
 export const ReorderTaskSchema = z.object({

@@ -1,9 +1,9 @@
 ---
-import { ProjectAndTasksView } from '@/components/features/tasks/ProjectAndTasksView';
-import Layout from '@/layouts/Layout.astro';
-import { ProjectService } from '@/lib/services/project.service';
-import { TaskService } from '@/lib/services/task.service';
-import type { IBreadcrumb, Project, Task } from '@/types';
+import { ProjectAndTasksView } from "@/components/features/tasks/ProjectAndTasksView";
+import Layout from "@/layouts/Layout.astro";
+import { ProjectService } from "@/lib/services/project.service";
+import { TaskService } from "@/lib/services/task.service";
+import type { IBreadcrumb, Project, Task } from "@/types";
 
 export const prerender = false;
 
@@ -12,7 +12,7 @@ const { user, supabase } = Astro.locals;
 
 if (!projectId || !user) {
   // If there's no project ID or user, we can't proceed.
-  return Astro.redirect('/projects');
+  return Astro.redirect("/projects");
 }
 
 const projectService = new ProjectService();
@@ -39,10 +39,9 @@ try {
   project = projectResult;
   initialTasks = tasksResult.data;
   breadcrumbs = breadcrumbsResult;
-
 } catch (e) {
-  error = e instanceof Error ? e : new Error('An unknown error occurred');
-  console.error('Error fetching page data:', e);
+  error = e instanceof Error ? e : new Error("An unknown error occurred");
+  console.error("Error fetching page data:", e);
 }
 
 // If the project doesn't exist, the user doesn't have access,
@@ -50,7 +49,7 @@ try {
 if (!project) {
   // It's good practice to inform the user why they are being redirected.
   // This could be done via a query parameter or a flash message system.
-  return Astro.redirect('/projects?error=project_not_found');
+  return Astro.redirect("/projects?error=project_not_found");
 }
 ---
 

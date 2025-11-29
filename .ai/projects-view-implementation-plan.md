@@ -1,24 +1,30 @@
 # Plan implementacji widoku: Moje Projekty
 
 ## 1. Przegląd
+
 Widok "Moje Projekty" jest głównym ekranem po zalogowaniu, który umożliwia użytkownikom przeglądanie listy swoich projektów oraz tworzenie nowych. Widok ten jest kluczowy dla nawigacji i zarządzania pracą w aplikacji. Implementacja obejmie wyświetlanie danych, obsługę stanu ładowania, stanu pustego oraz formularza do tworzenia nowego projektu w modalu.
 
 ## 2. Routing widoku
+
 - **Ścieżka:** `/projects`
 - **Dostęp:** Widok powinien być dostępny tylko dla zalogowanych użytkowników. Niezalogowani użytkownicy powinni być przekierowywani na stronę logowania.
 
 ## 3. Globalny nagłówek i układ
+
 Widok "Moje Projekty" jest osadzony w głównym układzie aplikacji, który zapewnia spójny nagłówek i stopkę na wszystkich stronach.
 
 ### `Layout.astro`
+
 - **Lokalizacja:** `/src/layouts/Layout.astro`
 - **Opis:** Główny plik układu, który owija każdą stronę. Będzie zawierał globalny komponent `Header.astro`.
 
 ### `Header.astro`
+
 - **Lokalizacja:** `/src/components/layout/Header.astro` (do utworzenia)
 - **Opis:** Komponent nagłówka, który będzie wyświetlał nazwę aplikacji, np. "10x To-Do App", i ewentualnie linki nawigacyjne. Będzie również zawierał przełącznik motywu (Light/Dark Mode), który pozwoli użytkownikowi na zmianę wyglądu aplikacji. Zostanie umieszczony w `Layout.astro`, aby był widoczny we wszystkich widokach.
 
 ## 4. Struktura komponentów
+
 Widok zostanie zaimplementowany jako strona Astro (`.astro`), która renderuje główny komponent kliencki React (`.tsx`).
 
 ```
@@ -38,6 +44,7 @@ Widok zostanie zaimplementowany jako strona Astro (`.astro`), która renderuje g
 ## 4. Szczegóły komponentów
 
 ### `ProjectsView.tsx`
+
 - **Opis:** Główny komponent React, który orkiestruje cały widok. Zarządza stanem (lista projektów, ładowanie, błędy), obsługuje logikę pobierania danych i renderuje odpowiednie komponenty podrzędne.
 - **Główne elementy:** Komponent `Button` do tworzenia projektu, `CreateProjectModal` oraz komponenty do wyświetlania stanu (ładowanie, błąd, pusty, lista).
 - **Obsługiwane interakcje:** Otwarcie modalu tworzenia projektu.
@@ -45,6 +52,7 @@ Widok zostanie zaimplementowany jako strona Astro (`.astro`), która renderuje g
 - **Propsy:** Brak.
 
 ### `ProjectList.tsx`
+
 - **Opis:** Komponent odpowiedzialny za renderowanie listy projektów. Iteruje po tablicy projektów i renderuje dla każdego z nich komponent `ProjectCard`.
 - **Główne elementy:** Kontener `div` lub `ul`, w którym mapowane są komponenty `ProjectCard`.
 - **Obsługiwane interakcje:** Brak.
@@ -52,6 +60,7 @@ Widok zostanie zaimplementowany jako strona Astro (`.astro`), która renderuje g
 - **Propsy:** `projects: ProjectViewModel[]`
 
 ### `ProjectCard.tsx`
+
 - **Opis:** Karta reprezentująca pojedynczy projekt. Wyświetla jego nazwę i opis. Cała karta jest klikalnym linkiem prowadzącym do szczegółów projektu. Zbudowana przy użyciu komponentu `Card` z `shadcn/ui`.
 - **Główne elementy:** `Card`, `CardHeader`, `CardTitle`, `CardDescription` z `shadcn/ui`. Całość owinięta w tag `<a>`.
 - **Obsługiwane interakcje:** Kliknięcie nawiguje do `/projects/[id]`.
@@ -59,6 +68,7 @@ Widok zostanie zaimplementowany jako strona Astro (`.astro`), która renderuje g
 - **Propsy:** `project: ProjectViewModel`
 
 ### `CreateProjectModal.tsx`
+
 - **Opis:** Modal (dialog) zawierający formularz do tworzenia nowego projektu. Używa komponentu `Dialog` z `shadcn/ui`.
 - **Główne elementy:** `Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle`, `DialogDescription`, `DialogFooter` oraz osadzony `ProjectForm`.
 - **Obsługiwane interakcje:** Otwieranie/zamykanie modalu, przesyłanie formularza.
@@ -66,15 +76,17 @@ Widok zostanie zaimplementowany jako strona Astro (`.astro`), która renderuje g
 - **Propsy:** `isOpen: boolean`, `onOpenChange: (isOpen: boolean) => void`, `onSubmit: (data: ProjectCreateCommand) => Promise<void>`.
 
 ### `ProjectForm.tsx`
+
 - **Opis:** Formularz do tworzenia projektu, używany wewnątrz `CreateProjectModal`. Wykorzystuje `react-hook-form` i `zod` do walidacji.
 - **Główne elementy:** `form`, `Input` (dla nazwy), `Textarea` (dla opisu), `Button` (do wysłania).
 - **Obsługiwana walidacja:**
-    - `name`: Pole wymagane, nie może być puste. Komunikat: "Nazwa projektu jest wymagana."
-    - `description`: Pole opcjonalne.
+  - `name`: Pole wymagane, nie może być puste. Komunikat: "Nazwa projektu jest wymagana."
+  - `description`: Pole opcjonalne.
 - **Typy:** `ProjectCreateCommand`
 - **Propsy:** `onSubmit: (data: ProjectCreateCommand) => Promise<void>`, `isSubmitting: boolean`.
 
 ### `ProjectListSkeleton.tsx`
+
 - **Opis:** Komponent wyświetlany podczas ładowania danych. Pokazuje kilka szarych "szkieletów" kart, aby zasygnalizować użytkownikowi, że dane są w drodze.
 - **Główne elementy:** Kilka komponentów `Skeleton` z `shadcn/ui` ułożonych w layout kart.
 - **Propsy:** Brak.
@@ -82,6 +94,7 @@ Widok zostanie zaimplementowany jako strona Astro (`.astro`), która renderuje g
 ## 5. Typy
 
 ### DTO (Data Transfer Objects) - zgodne z API
+
 ```typescript
 // DTO dla odpowiedzi z GET /projects
 interface ProjectGetDto {
@@ -109,6 +122,7 @@ interface ProjectCreateResultDto {
 ```
 
 ### ViewModel (dla UI)
+
 ```typescript
 // Model widoku używany do renderowania w komponentach React
 interface ProjectViewModel {
@@ -120,30 +134,34 @@ interface ProjectViewModel {
 ```
 
 ## 6. Zarządzanie stanem
+
 Zarządzanie stanem zostanie scentralizowane w niestandardowym hooku `useProjects`, który będzie używany w komponencie `ProjectsView`.
 
 ### `useProjects()`
+
 - **Cel:** Abstrakcja logiki pobierania, tworzenia i cachowania projektów.
 - **Zarządzany stan:**
-    - `projects: ProjectViewModel[]`
-    - `isLoading: boolean`
-    - `error: Error | null`
+  - `projects: ProjectViewModel[]`
+  - `isLoading: boolean`
+  - `error: Error | null`
 - **Eksponowane funkcje:**
-    - `createProject(data: ProjectCreateCommand): Promise<void>`: Wywołuje API `POST /projects` i aktualizuje lokalny stan `projects` bez potrzeby ponownego pobierania całej listy.
-    - `refetch(): void`: Funkcja do manualnego ponownego pobrania projektów.
+  - `createProject(data: ProjectCreateCommand): Promise<void>`: Wywołuje API `POST /projects` i aktualizuje lokalny stan `projects` bez potrzeby ponownego pobierania całej listy.
+  - `refetch(): void`: Funkcja do manualnego ponownego pobrania projektów.
 
 ## 7. Integracja API
+
 - **Pobieranie listy projektów:**
-    - **Endpoint:** `GET /api/projects`
-    - **Akcja:** Wywoływane przy pierwszym renderowaniu komponentu `ProjectsView` przez hook `useProjects`.
-    - **Typ odpowiedzi:** `ProjectGetDto[]`
+  - **Endpoint:** `GET /api/projects`
+  - **Akcja:** Wywoływane przy pierwszym renderowaniu komponentu `ProjectsView` przez hook `useProjects`.
+  - **Typ odpowiedzi:** `ProjectGetDto[]`
 - **Tworzenie nowego projektu:**
-    - **Endpoint:** `POST /api/projects`
-    - **Akcja:** Wywoływane po pomyślnej walidacji i wysłaniu formularza w `CreateProjectModal`.
-    - **Typ żądania:** `ProjectCreateCommand`
-    - **Typ odpowiedzi:** `ProjectCreateResultDto`
+  - **Endpoint:** `POST /api/projects`
+  - **Akcja:** Wywoływane po pomyślnej walidacji i wysłaniu formularza w `CreateProjectModal`.
+  - **Typ żądania:** `ProjectCreateCommand`
+  - **Typ odpowiedzi:** `ProjectCreateResultDto`
 
 ## 8. Interakcje użytkownika
+
 1.  **Wejście na stronę `/projects`**: Użytkownik widzi animację ładowania (`ProjectListSkeleton`), a następnie listę projektów lub komunikat o jej braku (`EmptyState`).
 2.  **Kliknięcie "Utwórz nowy projekt"**: Otwiera się modal `CreateProjectModal`.
 3.  **Wypełnienie i wysłanie formularza**:
@@ -152,19 +170,22 @@ Zarządzanie stanem zostanie scentralizowane w niestandardowym hooku `useProject
 4.  **Kliknięcie karty projektu**: Użytkownik jest przenoszony na stronę szczegółów projektu (`/projects/[id]`).
 
 ## 9. Warunki i walidacja
+
 - **Walidacja formularza (klient):** W komponencie `ProjectForm` za pomocą `react-hook-form` i `zod`.
-    - `name`: Musi być stringiem o długości co najmniej 1.
+  - `name`: Musi być stringiem o długości co najmniej 1.
 - **Stan interfejsu:**
-    - Przycisk "Zapisz" w formularzu jest nieaktywny, jeśli nazwa jest pusta lub formularz jest w trakcie wysyłania.
-    - Widok listy projektów jest zastępowany przez `ProjectListSkeleton` gdy `isLoading` jest `true`.
-    - Komunikat o błędzie jest wyświetlany, gdy `error` nie jest `null`.
+  - Przycisk "Zapisz" w formularzu jest nieaktywny, jeśli nazwa jest pusta lub formularz jest w trakcie wysyłania.
+  - Widok listy projektów jest zastępowany przez `ProjectListSkeleton` gdy `isLoading` jest `true`.
+  - Komunikat o błędzie jest wyświetlany, gdy `error` nie jest `null`.
 
 ## 10. Obsługa błędów
+
 - **Błąd pobierania projektów (`GET /api/projects`)**: W głównym widoku zostanie wyświetlony komunikat o błędzie, np. "Nie udało się załadować projektów", z opcjonalnym przyciskiem "Spróbuj ponownie", który wywoła funkcję `refetch`.
 - **Błąd tworzenia projektu (`POST /api/projects`)**: Błąd zostanie wyświetlony wewnątrz modalu `CreateProjectModal`, np. nad przyciskiem "Zapisz". Formularz nie zostanie zamknięty, a przycisk "Zapisz" zostanie ponownie aktywowany.
 - **Brak autoryzacji (401)**: Obsługa na poziomie globalnym (middleware lub layout), przekierowanie na stronę logowania.
 
 ## 11. Kroki implementacji
+
 1.  **Stworzenie plików:** Utwórz pliki dla wszystkich zdefiniowanych komponentów: `projects.astro`, `ProjectsView.tsx`, `ProjectList.tsx`, `ProjectCard.tsx`, `CreateProjectModal.tsx`, `ProjectForm.tsx`, `ProjectListSkeleton.tsx`, `EmptyState.tsx`.
 2.  **Zdefiniowanie typów:** W pliku `src/types.ts` dodaj definicje `ProjectViewModel`.
 3.  **Implementacja hooka `useProjects`:** Stwórz logikę do pobierania i tworzenia projektów, zarządzania stanem `isLoading` i `error`.

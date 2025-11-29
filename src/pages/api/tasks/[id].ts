@@ -3,10 +3,7 @@ import { z } from "zod";
 import { TaskService } from "@/lib/services/task.service";
 import { DEFAULT_USER_ID, type SupabaseClient } from "@/db/supabase.client";
 import { TaskUpdateSchema } from "@/lib/schemas/task.schemas";
-import {
-  AuthorizationError,
-  TaskNotFoundError,
-} from "@/lib/errors";
+import { AuthorizationError, TaskNotFoundError } from "@/lib/errors";
 
 export const prerender = false;
 
@@ -94,11 +91,7 @@ export async function PATCH({ params, request, locals }: APIContext) {
     // TODO: Replace with actual auth principal from context.locals
     const auth = { userId: DEFAULT_USER_ID };
     const taskService = new TaskService(supabase);
-    const updatedTask = await taskService.updateTask(
-      taskId,
-      updateData,
-      auth
-    );
+    const updatedTask = await taskService.updateTask(taskId, updateData, auth);
 
     return new Response(JSON.stringify(updatedTask), {
       status: 200,
@@ -118,12 +111,9 @@ export async function PATCH({ params, request, locals }: APIContext) {
       });
     }
     console.error("Error updating task:", error);
-    return new Response(
-      JSON.stringify({ message: error.message || "Internal Server Error" }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({ message: error.message || "Internal Server Error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }

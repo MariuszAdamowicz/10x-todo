@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,9 +11,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface DangerZoneProps {
   onDelete: () => void;
@@ -22,7 +22,7 @@ interface DangerZoneProps {
 }
 
 export default function DangerZone({ onDelete, isDeleting, projectName }: DangerZoneProps) {
-  const [confirmation, setConfirmation] = useState('');
+  const [confirmation, setConfirmation] = useState("");
 
   const isConfirmationMatching = confirmation === projectName;
 
@@ -36,9 +36,7 @@ export default function DangerZone({ onDelete, isDeleting, projectName }: Danger
     <Card className="border-destructive">
       <CardHeader>
         <CardTitle className="text-destructive">Danger Zone</CardTitle>
-        <CardDescription>
-          These actions are permanent and cannot be undone.
-        </CardDescription>
+        <CardDescription>These actions are permanent and cannot be undone.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex justify-between items-center">
@@ -72,13 +70,13 @@ export default function DangerZone({ onDelete, isDeleting, projectName }: Danger
                 />
               </div>
               <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setConfirmation('')}>Cancel</AlertDialogCancel>
+                <AlertDialogCancel onClick={() => setConfirmation("")}>Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleDelete}
                   disabled={!isConfirmationMatching || isDeleting}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
-                  {isDeleting ? 'Deleting...' : 'Delete Project'}
+                  {isDeleting ? "Deleting..." : "Delete Project"}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

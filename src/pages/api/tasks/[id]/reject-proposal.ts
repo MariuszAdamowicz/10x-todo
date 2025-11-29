@@ -1,9 +1,9 @@
-import type { APIContext } from 'astro';
-import { z } from 'zod';
-import { taskRejectProposalSchema } from '@/lib/schemas/task.schemas';
-import { TaskService } from '@/lib/services/task.service';
-import { handleApiError } from '@/lib/errors';
-import { DEFAULT_USER_ID } from '@/db/supabase.client';
+import type { APIContext } from "astro";
+import { z } from "zod";
+import { taskRejectProposalSchema } from "@/lib/schemas/task.schemas";
+import { TaskService } from "@/lib/services/task.service";
+import { handleApiError } from "@/lib/errors";
+import { DEFAULT_USER_ID } from "@/db/supabase.client";
 
 export const POST = async ({ params, request, locals }: APIContext) => {
   try {

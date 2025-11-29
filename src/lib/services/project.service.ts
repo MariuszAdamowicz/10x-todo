@@ -1,8 +1,5 @@
 import type { SupabaseClient } from "@/db/supabase.client";
-import {
-  AuthorizationError,
-  ProjectNotFoundError,
-} from "@/lib/errors";
+import { AuthorizationError, ProjectNotFoundError } from "@/lib/errors";
 import type {
   ProjectCreateCommand,
   ProjectCreateResultDto,
@@ -20,7 +17,7 @@ const MOCK_PROJECT_DETAILS: ProjectGetDetailsDto = {
   created_at: new Date().toISOString(),
 };
 
-const USE_MOCK_SERVICES = import.meta.env.PUBLIC_MOCK_SERVICES === 'true';
+const USE_MOCK_SERVICES = import.meta.env.PUBLIC_MOCK_SERVICES === "true";
 
 export class ProjectService {
   /**
@@ -31,10 +28,7 @@ export class ProjectService {
    * @returns A promise that resolves to an array of projects.
    * @throws An error if the database query fails.
    */
-  public async getProjects(
-    supabase: SupabaseClient,
-    userId: string
-  ): Promise<ProjectGetDto[]> {
+  public async getProjects(supabase: SupabaseClient, userId: string): Promise<ProjectGetDto[]> {
     const { data: projects, error } = await supabase
       .from("projects")
       .select("id, name, description, created_at")
@@ -59,11 +53,7 @@ export class ProjectService {
    * @returns A promise that resolves to the project details.
    * @throws {ProjectNotFoundError} If the project is not found.
    */
-  public async getProjectById(
-    supabase: SupabaseClient,
-    id: string,
-    userId: string
-  ): Promise<ProjectGetDetailsDto> {
+  public async getProjectById(supabase: SupabaseClient, id: string, userId: string): Promise<ProjectGetDetailsDto> {
     if (USE_MOCK_SERVICES) {
       console.log("Using mock ProjectService.getProjectById");
       console.log("Mock ID:", id, "Mock User ID:", userId);
@@ -169,11 +159,7 @@ export class ProjectService {
    * @returns A promise that resolves when the project is deleted.
    * @throws {ProjectNotFoundError} If the project is not found.
    */
-  public async deleteProject(
-    supabase: SupabaseClient,
-    id: string,
-    userId: string
-  ): Promise<void> {
+  public async deleteProject(supabase: SupabaseClient, id: string, userId: string): Promise<void> {
     const { error, count } = await supabase
       .from("projects")
       .delete({ count: "exact" })

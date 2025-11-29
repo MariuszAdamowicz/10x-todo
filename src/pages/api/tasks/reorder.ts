@@ -2,11 +2,7 @@ import type { APIRoute } from "astro";
 import { ReorderTasksDtoSchema } from "@/lib/schemas/task.schemas";
 import { TaskService } from "@/lib/services/task.service";
 import { DEFAULT_USER_ID } from "@/db/supabase.client";
-import {
-  AuthorizationError,
-  InvalidStateError,
-  TaskNotFoundError,
-} from "@/lib/errors";
+import { AuthorizationError, InvalidStateError, TaskNotFoundError } from "@/lib/errors";
 
 export const prerender = false;
 
@@ -27,7 +23,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         { status: 400 }
       );
     }
-    
+
     const validatedBody = validation.data;
 
     // 2. Get user ID (using default for now)
@@ -38,7 +34,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     await taskService.reorderTasks(userId, validatedBody);
 
     return new Response(null, { status: 204 });
-
   } catch (error) {
     if (error instanceof TaskNotFoundError) {
       return new Response(JSON.stringify({ message: error.message }), {

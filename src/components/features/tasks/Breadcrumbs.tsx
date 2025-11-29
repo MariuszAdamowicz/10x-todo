@@ -5,8 +5,8 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
-import type { IBreadcrumb } from '@/types';
+} from "@/components/ui/breadcrumb";
+import type { IBreadcrumb } from "@/types";
 
 export interface BreadcrumbsProps {
   items: IBreadcrumb[];

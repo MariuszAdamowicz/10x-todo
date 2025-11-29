@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { toast } from 'sonner';
-import type { ProjectGetDetailsDto, ProjectUpdateCommand } from '@/types';
+import { useState } from "react";
+import { toast } from "sonner";
+import type { ProjectGetDetailsDto, ProjectUpdateCommand } from "@/types";
 
 // As defined in the implementation plan
 interface ProjectSettingsViewModel {
@@ -31,17 +31,17 @@ export function useProjectSettings(initialProject: ProjectGetDetailsDto) {
     setError(null);
     try {
       const response = await fetch(`/api/projects/${project.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formState),
       });
-      if (!response.ok) throw new Error('Failed to save changes.');
+      if (!response.ok) throw new Error("Failed to save changes.");
       const updatedProject = await response.json();
       setProject({ ...project, ...updatedProject });
       setFormState({ name: updatedProject.name, description: updatedProject.description });
-      toast.success('Project updated successfully!');
+      toast.success("Project updated successfully!");
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
+      const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -55,7 +55,7 @@ export function useProjectSettings(initialProject: ProjectGetDetailsDto) {
 
   const copyApiKey = () => {
     navigator.clipboard.writeText(project.apiKey);
-    toast.success('API Key copied to clipboard!');
+    toast.success("API Key copied to clipboard!");
   };
 
   const regenerateApiKey = async () => {
@@ -63,14 +63,14 @@ export function useProjectSettings(initialProject: ProjectGetDetailsDto) {
     setError(null);
     try {
       const response = await fetch(`/api/projects/${project.id}/regenerate-api-key`, {
-        method: 'POST',
+        method: "POST",
       });
-      if (!response.ok) throw new Error('Failed to regenerate API key.');
+      if (!response.ok) throw new Error("Failed to regenerate API key.");
       const { api_key } = await response.json();
       setProject({ ...project, apiKey: api_key });
-      toast.success('API Key regenerated successfully!');
+      toast.success("API Key regenerated successfully!");
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
+      const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -83,13 +83,13 @@ export function useProjectSettings(initialProject: ProjectGetDetailsDto) {
     setError(null);
     try {
       const response = await fetch(`/api/projects/${project.id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
-      if (!response.ok) throw new Error('Failed to delete project.');
-      toast.success('Project deleted successfully.');
-      window.location.href = '/projects';
+      if (!response.ok) throw new Error("Failed to delete project.");
+      toast.success("Project deleted successfully.");
+      window.location.href = "/projects";
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
+      const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {

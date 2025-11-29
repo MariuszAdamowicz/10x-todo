@@ -1,9 +1,9 @@
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import type { ProjectUpdateCommand } from '@/types';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import type { ProjectUpdateCommand } from "@/types";
 
 // This is a placeholder for the ProjectSettingsViewModel defined in the plan
 interface ProjectSettingsViewModel {
@@ -30,8 +30,7 @@ export default function ProjectSettingsForm({
   isSaving,
   setFormState,
 }: ProjectSettingsFormProps) {
-  const hasChanges =
-    formState.name !== project.name || formState.description !== project.description;
+  const hasChanges = formState.name !== project.name || formState.description !== project.description;
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +58,7 @@ export default function ProjectSettingsForm({
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
-              value={formState.description ?? ''}
+              value={formState.description ?? ""}
               onChange={(e) => setFormState({ ...formState, description: e.target.value })}
               placeholder="A brief description of your project."
             />
@@ -67,7 +66,7 @@ export default function ProjectSettingsForm({
         </CardContent>
         <CardFooter className="border-t px-6 py-4">
           <Button type="submit" disabled={!hasChanges || isSaving}>
-            {isSaving ? 'Saving...' : 'Save Changes'}
+            {isSaving ? "Saving..." : "Save Changes"}
           </Button>
         </CardFooter>
       </form>

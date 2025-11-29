@@ -7,6 +7,7 @@ A web-based task management tool designed to facilitate effective collaboration 
 The 10x To-Do App addresses the need for a dedicated tool that allows developers to manage and delegate tasks to their own AI scripts or assistants. Unlike traditional to-do applications, it provides an open API designed specifically for human-machine collaboration.
 
 The core workflow involves:
+
 - A **developer** creating projects and breaking down work into hierarchical tasks.
 - The developer **delegating** specific tasks to an AI assistant.
 - The **AI assistant** using a project-specific API key to fetch delegated tasks, create its own sub-tasks to track its work, and propose the completion or cancellation of the main task.
@@ -14,13 +15,13 @@ The core workflow involves:
 
 ## Tech Stack
 
-| Category      | Technology                                                              |
-|---------------|-------------------------------------------------------------------------|
-| **Frontend**  | [Astro 5](https://astro.build/), [React 19](https://react.dev/), [TypeScript](https://www.typescriptlang.org/) |
-| **Styling**   | [Tailwind CSS 4](https://tailwindcss.com/), [Shadcn/ui](https://ui.shadcn.com/) |
-| **Backend**   | [Supabase](https://supabase.com/) (PostgreSQL, Authentication, BaaS)      |
-| **DevOps**    | [GitHub Actions](https://github.com/features/actions) for CI/CD, [Docker](https://www.docker.com/) |
-| **Tooling**   | [Node.js](https://nodejs.org/), [ESLint](https://eslint.org/), [Prettier](https://prettier.io/), [Husky](https://typicode.github.io/husky/) |
+| Category     | Technology                                                                                                                                  |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Frontend** | [Astro 5](https://astro.build/), [React 19](https://react.dev/), [TypeScript](https://www.typescriptlang.org/)                              |
+| **Styling**  | [Tailwind CSS 4](https://tailwindcss.com/), [Shadcn/ui](https://ui.shadcn.com/)                                                             |
+| **Backend**  | [Supabase](https://supabase.com/) (PostgreSQL, Authentication, BaaS)                                                                        |
+| **DevOps**   | [GitHub Actions](https://github.com/features/actions) for CI/CD, [Docker](https://www.docker.com/)                                          |
+| **Tooling**  | [Node.js](https://nodejs.org/), [ESLint](https://eslint.org/), [Prettier](https://prettier.io/), [Husky](https://typicode.github.io/husky/) |
 
 ## Getting Started Locally
 
@@ -34,21 +35,25 @@ Follow these instructions to set up and run the project on your local machine.
 ### Installation & Setup
 
 1.  **Clone the repository:**
+
     ```sh
     git clone https://github.com/your-username/10x-todo.git
     cd 10x-todo
     ```
 
 2.  **Install dependencies:**
+
     ```sh
     npm install
     ```
 
 3.  **Set up environment variables:**
     Create a `.env` file by copying the example file. This will contain your Supabase credentials.
+
     ```sh
     cp .env.example .env
     ```
+
     Fill in the required variables in the newly created `.env` file.
 
 4.  **Run the development server:**
@@ -79,10 +84,10 @@ The following scripts are available in `package.json`:
 - **Task Delegation**: Assign any task to an AI assistant.
 - **Task Lifecycle**: Tasks move through a defined set of statuses: `To Do`, `Done`, `Canceled`, `Pending Approval`, etc.
 - **AI REST API**:
-    - Authenticate using the project API key.
-    - Fetch all project tasks or only those delegated to the AI.
-    - Create sub-tasks for delegated tasks (one level deep).
-    - Propose status changes (`Done` or `Canceled`) for delegated tasks, which require user approval.
+  - Authenticate using the project API key.
+  - Fetch all project tasks or only those delegated to the AI.
+  - Create sub-tasks for delegated tasks (one level deep).
+  - Propose status changes (`Done` or `Canceled`) for delegated tasks, which require user approval.
 - **User Approval System**: UI for developers to accept or reject AI proposals with comments.
 
 ### Out of Scope (for now)

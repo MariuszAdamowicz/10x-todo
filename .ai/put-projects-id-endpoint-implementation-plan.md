@@ -1,10 +1,11 @@
-
 # Plan Implementacji Endpointu API: Aktualizacja Projektu
 
 ## 1. Przegląd Endpointu
+
 Ten endpoint umożliwia użytkownikom aktualizację istniejącego projektu. Użytkownik musi być uwierzytelniony i być właścicielem projektu, aby móc go zmodyfikować. Endpoint przyjmuje identyfikator projektu w ścieżce URL oraz nowe dane projektu w ciele żądania.
 
 ## 2. Szczegóły Żądania
+
 - **Metoda HTTP:** `PUT`
 - **Struktura URL:** `/api/projects/{id}`
 - **Parametry:**
@@ -22,17 +23,19 @@ Ten endpoint umożliwia użytkownikom aktualizację istniejącego projektu. Uży
     ```
 
 ## 3. Używane Typy
+
 - **Command Model:** `ProjectUpdateCommand` (z `src/types.ts`)
   ```typescript
-  export type ProjectUpdateCommand = Pick<Project, 'name' | 'description'>;
+  export type ProjectUpdateCommand = Pick<Project, "name" | "description">;
   ```
 - **DTO:** `ProjectUpdateResultDto` (z `src/types.ts`)
   ```typescript
   export type ProjectUpdateResultDto = Project;
   ```
 - **Walidacja (Zod):**
+
   ```typescript
-  import { z } from 'zod';
+  import { z } from "zod";
 
   const projectUpdateSchema = z.object({
     name: z.string().min(1, "Nazwa projektu jest wymagana."),
@@ -43,6 +46,7 @@ Ten endpoint umożliwia użytkownikom aktualizację istniejącego projektu. Uży
   ```
 
 ## 4. Szczegóły Odpowiedzi
+
 - **Sukces (200 OK):** Zwraca pełny, zaktualizowany obiekt projektu.
   ```json
   {
@@ -62,6 +66,7 @@ Ten endpoint umożliwia użytkownikom aktualizację istniejącego projektu. Uży
   - **500 Internal Server Error:** Błąd serwera, np. problem z bazą danych.
 
 ## 5. Przepływ Danych
+
 1. Endpoint `PUT /api/projects/{id}` otrzymuje żądanie.
 2. Middleware Astro weryfikuje token JWT i dołącza obiekt `user` oraz klienta `supabase` do `context.locals`.
 3. Handler `PUT` w `src/pages/api/projects/[id].ts` jest wywoływany.
@@ -74,11 +79,13 @@ Ten endpoint umożliwia użytkownikom aktualizację istniejącego projektu. Uży
 10. Handler serializuje dane do formatu JSON i zwraca odpowiedź z kodem statusu 200.
 
 ## 6. Kwestie Bezpieczeństwa
+
 - **Uwierzytelnianie:** Zapewnione przez middleware Astro, które weryfikuje token JWT Supabase. Dostęp do endpointu powinien być zablokowany dla niezalogowanych użytkowników.
 - **Autoryzacja:** Kluczowym elementem jest weryfikacja, czy zalogowany użytkownik (`user.id`) jest właścicielem projektu, który próbuje zaktualizować. Zapytanie `UPDATE` w serwisie musi zawierać warunek `eq('user_id', userId)`, co jest zgodne z polityką RLS w Supabase (`allow update for users on their own projects`).
 - **Walidacja Danych:** Wszystkie dane wejściowe (`id` i ciało żądania) muszą być rygorystycznie walidowane za pomocą `zod`, aby zapobiec atakom typu SQL Injection i zapewnić spójność danych.
 
 ## 7. Obsługa Błędów
+
 - **Brak `user` w `context.locals`:** Zwróć 401 Unauthorized.
 - **Nieprawidłowy `id` (nie-UUID):** Zwróć 400 Bad Request z komunikatem "Nieprawidłowy format ID projektu."
 - **Nieprawidłowe ciało żądania:** Zwróć 400 Bad Request z szczegółami błędów walidacji `zod`.
@@ -86,19 +93,21 @@ Ten endpoint umożliwia użytkownikom aktualizację istniejącego projektu. Uży
 - **Błąd bazy danych:** W bloku `catch` złap błąd z `projectService` i zwróć 500 Internal Server Error. Błąd powinien być logowany po stronie serwera.
 
 ## 8. Wydajność
+
 - Zapytanie `UPDATE` na kluczu głównym (`id`) i indeksowanym polu (`user_id`) jest wysoce wydajne.
 - Nie przewiduje się problemów z wydajnością przy typowym obciążeniu.
 
 ## 9. Kroki Implementacji
+
 1. **Utworzenie nowej metody w `project.service.ts`:**
    - Dodaj metodę `updateProject(supabase: SupabaseClient, id: string, userId: string, projectData: ProjectUpdateCommand): Promise<ProjectUpdateResultDto | null>`.
    - Wewnątrz metody wykonaj zapytanie `UPDATE` do Supabase:
      ```typescript
      const { data, error } = await supabase
-       .from('projects')
+       .from("projects")
        .update({ name: projectData.name, description: projectData.description })
-       .eq('id', id)
-       .eq('user_id', userId)
+       .eq("id", id)
+       .eq("user_id", userId)
        .select()
        .single();
      ```

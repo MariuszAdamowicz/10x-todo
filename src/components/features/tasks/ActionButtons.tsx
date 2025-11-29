@@ -1,12 +1,12 @@
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import type { TaskViewModel } from '@/types';
-import { MoreHorizontal, Plus, Share2 } from 'lucide-react';
+} from "@/components/ui/dropdown-menu";
+import type { TaskViewModel } from "@/types";
+import { MoreHorizontal, Plus, Share2 } from "lucide-react";
 
 export interface ActionButtonsProps {
   task: TaskViewModel;
@@ -15,12 +15,7 @@ export interface ActionButtonsProps {
   onCancel: (id: string) => void;
 }
 
-export function ActionButtons({
-  task,
-  onDelegate,
-  onAddSubtask,
-  onCancel,
-}: ActionButtonsProps) {
+export function ActionButtons({ task, onDelegate, onAddSubtask, onCancel }: ActionButtonsProps) {
   const isMutating = task.isMutating;
   const isDelegated = task.is_delegated;
 
@@ -34,7 +29,7 @@ export function ActionButtons({
         aria-label="Delegate task"
       >
         <Share2 className="mr-2 h-4 w-4" />
-        {isDelegated ? 'Delegated' : 'Delegate'}
+        {isDelegated ? "Delegated" : "Delegate"}
       </Button>
       <Button
         variant="outline"
@@ -53,11 +48,7 @@ export function ActionButtons({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
-          <DropdownMenuItem
-            onClick={() => onCancel(task.id)}
-            disabled={isDelegated}
-            className="text-red-500"
-          >
+          <DropdownMenuItem onClick={() => onCancel(task.id)} disabled={isDelegated} className="text-red-500">
             Cancel Task
           </DropdownMenuItem>
         </DropdownMenuContent>

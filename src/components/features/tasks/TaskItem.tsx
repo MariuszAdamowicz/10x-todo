@@ -1,17 +1,17 @@
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { GripVertical } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import type { TaskViewModel } from '@/types';
-import { useState } from 'react';
-import { ActionButtons } from './ActionButtons';
-import { ProposalNotification } from './ProposalNotification';
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import type { TaskViewModel } from "@/types";
+import { useState } from "react";
+import { ActionButtons } from "./ActionButtons";
+import { ProposalNotification } from "./ProposalNotification";
 
 export interface TaskItemProps {
   task: TaskViewModel;
   onUpdate: (id: string, data: Partial<TaskViewModel>) => void;
-  onNavigate: (id:string) => void;
+  onNavigate: (id: string) => void;
   onDelegate: (id: string) => void;
   onCancel: (id: string) => void;
   onAddSubtask: (id: string) => void;
@@ -34,14 +34,10 @@ export function TaskItem({
 
   const { isPendingUserAction } = task;
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: task.id, disabled: isPendingUserAction });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: task.id,
+    disabled: isPendingUserAction,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -62,23 +58,23 @@ export function TaskItem({
 
   const handleStatusChange = (checked: boolean) => {
     const newStatus = checked ? 2 : 1; // 2: Done, 1: To Do
-    if (task.status_id === 3 && !checked) { // From Canceled to To Do
-        onUpdate(task.id, { status_id: 1 });
+    if (task.status_id === 3 && !checked) {
+      // From Canceled to To Do
+      onUpdate(task.id, { status_id: 1 });
     } else {
-        onUpdate(task.id, { status_id: newStatus });
+      onUpdate(task.id, { status_id: newStatus });
     }
   };
 
   const isChecked = task.status_id === 2 || task.status_id === 3;
-
 
   return (
     <li
       ref={setNodeRef}
       style={style}
       className={`rounded-lg border bg-background p-4 ${
-        task.isMutating ? 'opacity-50' : ''
-      } ${isDragging ? 'shadow-lg' : ''}`}
+        task.isMutating ? "opacity-50" : ""
+      } ${isDragging ? "shadow-lg" : ""}`}
     >
       <div className="flex items-center space-x-4">
         <div {...attributes} {...listeners} className="cursor-grab touch-none p-2">
@@ -94,27 +90,20 @@ export function TaskItem({
             value={title}
             onChange={handleTitleChange}
             onBlur={handleTitleBlur}
-            onKeyDown={(e) => e.key === 'Enter' && handleTitleBlur()}
+            onKeyDown={(e) => e.key === "Enter" && handleTitleBlur()}
             autoFocus
             className="flex-1"
           />
         ) : (
           <span
-            className={`flex-1 cursor-pointer ${
-              isChecked ? 'text-muted-foreground line-through' : ''
-            }`}
+            className={`flex-1 cursor-pointer ${isChecked ? "text-muted-foreground line-through" : ""}`}
             onClick={() => onNavigate(task.id)}
             onDoubleClick={() => !task.is_delegated && !isPendingUserAction && setIsEditing(true)}
           >
             {task.title}
           </span>
         )}
-        <ActionButtons
-          task={task}
-          onDelegate={onDelegate}
-          onAddSubtask={onAddSubtask}
-          onCancel={onCancel}
-        />
+        <ActionButtons task={task} onDelegate={onDelegate} onAddSubtask={onAddSubtask} onCancel={onCancel} />
       </div>
       {isPendingUserAction && task.aiProposalComment && (
         <ProposalNotification

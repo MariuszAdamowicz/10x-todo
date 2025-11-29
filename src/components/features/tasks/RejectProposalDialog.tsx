@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -6,9 +6,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { useState } from 'react';
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { useState } from "react";
 
 export interface RejectProposalDialogProps {
   isOpen: boolean;
@@ -17,13 +17,8 @@ export interface RejectProposalDialogProps {
   isLoading: boolean;
 }
 
-export function RejectProposalDialog({
-  isOpen,
-  onClose,
-  onSubmit,
-  isLoading,
-}: RejectProposalDialogProps) {
-  const [comment, setComment] = useState('');
+export function RejectProposalDialog({ isOpen, onClose, onSubmit, isLoading }: RejectProposalDialogProps) {
+  const [comment, setComment] = useState("");
 
   const handleSubmit = () => {
     if (!comment.trim()) return;
@@ -36,8 +31,7 @@ export function RejectProposalDialog({
         <DialogHeader>
           <DialogTitle>Reject Proposal</DialogTitle>
           <DialogDescription>
-            Please provide a reason for rejecting the AI's proposal. This feedback will help the
-            assistant learn.
+            Please provide a reason for rejecting the AI's proposal. This feedback will help the assistant learn.
           </DialogDescription>
         </DialogHeader>
         <Textarea
@@ -51,7 +45,7 @@ export function RejectProposalDialog({
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={isLoading || !comment.trim()}>
-            {isLoading ? 'Submitting...' : 'Submit Rejection'}
+            {isLoading ? "Submitting..." : "Submit Rejection"}
           </Button>
         </DialogFooter>
       </DialogContent>

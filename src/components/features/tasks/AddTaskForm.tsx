@@ -1,6 +1,6 @@
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useState } from "react";
 
 export interface AddTaskFormProps {
   onAddTask: (title: string) => void;
@@ -8,13 +8,13 @@ export interface AddTaskFormProps {
 }
 
 export function AddTaskForm({ onAddTask, isLoading }: AddTaskFormProps) {
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
     onAddTask(title.trim());
-    setTitle('');
+    setTitle("");
   };
 
   return (
@@ -27,7 +27,7 @@ export function AddTaskForm({ onAddTask, isLoading }: AddTaskFormProps) {
         disabled={isLoading}
       />
       <Button type="submit" disabled={isLoading || !title.trim()}>
-        {isLoading ? 'Adding...' : 'Add Task'}
+        {isLoading ? "Adding..." : "Add Task"}
       </Button>
     </form>
   );

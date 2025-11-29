@@ -3,10 +3,7 @@ import { GetTasksQuerySchema, TaskCreateSchema } from "@/lib/schemas/task.schema
 import { TaskService } from "@/lib/services/task.service";
 import type { TaskCreateCommand } from "@/types";
 import { DEFAULT_USER_ID } from "@/db/supabase.client";
-import {
-  AuthorizationError,
-  TaskNotFoundError,
-} from "@/lib/errors";
+import { AuthorizationError, TaskNotFoundError } from "@/lib/errors";
 
 export const prerender = false;
 
@@ -90,9 +87,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const command: TaskCreateCommand = validation.data;
 
     // Handle auth for both AI (projectId from middleware) and user
-    const auth = user?.projectId
-      ? { projectId: user.projectId }
-      : { userId: user?.id ?? DEFAULT_USER_ID };
+    const auth = user?.projectId ? { projectId: user.projectId } : { userId: user?.id ?? DEFAULT_USER_ID };
 
     const taskService = new TaskService(supabase);
     const newTask = await taskService.createTask(command, auth);
@@ -110,7 +105,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       });
     }
     if (error instanceof Error && error.message.includes("is required")) {
-       return new Response(JSON.stringify({ message: error.message }), { status: 400 });
+      return new Response(JSON.stringify({ message: error.message }), { status: 400 });
     }
     console.error("Error creating task:", error);
     return new Response(JSON.stringify({ message: "Internal Server Error" }), {

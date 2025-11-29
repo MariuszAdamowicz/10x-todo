@@ -1,14 +1,14 @@
 ---
-import Layout from '@/layouts/Layout.astro';
-import { ProjectService } from '@/lib/services/project.service';
-import ProjectSettingsView from '@/components/views/ProjectSettingsView';
+import Layout from "@/layouts/Layout.astro";
+import { ProjectService } from "@/lib/services/project.service";
+import ProjectSettingsView from "@/components/views/ProjectSettingsView";
 
 export const prerender = false;
 
 const { id } = Astro.params;
 
 if (!id) {
-  return Astro.redirect('/projects');
+  return Astro.redirect("/projects");
 }
 
 const projectService = new ProjectService();
@@ -27,11 +27,11 @@ console.log("Error in settings.astro:", error);
 if (error) {
   // TODO: Obsługa błędów (np. przekierowanie na stronę błędu)
   console.error(error);
-  return Astro.redirect('/projects');
+  return Astro.redirect("/projects");
 }
 
 if (!project) {
-  return Astro.redirect('/404');
+  return Astro.redirect("/404");
 }
 ---
 

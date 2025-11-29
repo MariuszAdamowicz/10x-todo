@@ -1,8 +1,8 @@
-import type { ProjectGetDetailsDto } from '@/types';
-import { useProjectSettings } from '@/components/hooks/useProjectSettings';
-import ProjectSettingsForm from '@/components/features/projects/settings/ProjectSettingsForm';
-import ApiKeyManager from '@/components/features/projects/settings/ApiKeyManager';
-import DangerZone from '@/components/features/projects/settings/DangerZone';
+import type { ProjectGetDetailsDto } from "@/types";
+import { useProjectSettings } from "@/components/hooks/useProjectSettings";
+import ProjectSettingsForm from "@/components/features/projects/settings/ProjectSettingsForm";
+import ApiKeyManager from "@/components/features/projects/settings/ApiKeyManager";
+import DangerZone from "@/components/features/projects/settings/DangerZone";
 
 interface ProjectSettingsViewProps {
   initialProject: ProjectGetDetailsDto;
@@ -41,11 +41,7 @@ export default function ProjectSettingsView({ initialProject }: ProjectSettingsV
           onRegenerate={regenerateApiKey}
           isRegenerating={isRegenerating}
         />
-        <DangerZone
-          onDelete={deleteProject}
-          isDeleting={isDeleting}
-          projectName={project.name}
-        />
+        <DangerZone onDelete={deleteProject} isDeleting={isDeleting} projectName={project.name} />
       </div>
     </div>
   );

@@ -2,10 +2,7 @@ import type { APIContext } from "astro";
 import { z } from "zod";
 
 import { DEFAULT_USER_ID } from "@/db/supabase.client";
-import {
-  AuthorizationError,
-  ProjectNotFoundError,
-} from "@/lib/errors";
+import { AuthorizationError, ProjectNotFoundError } from "@/lib/errors";
 import { ProjectService } from "@/lib/services/project.service";
 import type { ProjectUpdateCommand } from "@/types";
 
@@ -75,11 +72,7 @@ export async function GET(context: APIContext): Promise<Response> {
 
   try {
     const projectService = new ProjectService();
-    const project = await projectService.getProjectById(
-      supabase,
-      validatedId,
-      DEFAULT_USER_ID
-    );
+    const project = await projectService.getProjectById(supabase, validatedId, DEFAULT_USER_ID);
     return new Response(JSON.stringify(project), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -157,13 +150,10 @@ export async function PUT(context: APIContext): Promise<Response> {
     const body = await context.request.json();
     const bodyValidationResult = projectUpdateSchema.safeParse(body);
     if (!bodyValidationResult.success) {
-      return new Response(
-        JSON.stringify({ error: bodyValidationResult.error.format() }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: bodyValidationResult.error.format() }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
     projectData = bodyValidationResult.data;
   } catch (error) {
@@ -176,12 +166,7 @@ export async function PUT(context: APIContext): Promise<Response> {
   // 3. Call the service to update the project
   try {
     const projectService = new ProjectService();
-    const updatedProject = await projectService.updateProject(
-      supabase,
-      validatedId,
-      DEFAULT_USER_ID,
-      projectData
-    );
+    const updatedProject = await projectService.updateProject(supabase, validatedId, DEFAULT_USER_ID, projectData);
     return new Response(JSON.stringify(updatedProject), {
       status: 200,
       headers: { "Content-Type": "application/json" },

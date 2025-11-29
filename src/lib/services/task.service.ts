@@ -7,12 +7,7 @@ import type {
   TaskUpdateCommand,
   TaskWithComments,
 } from "@/types";
-import {
-  AuthorizationError,
-  InvalidStateError,
-  ProjectNotFoundError,
-  TaskNotFoundError,
-} from "../errors";
+import { AuthorizationError, InvalidStateError, ProjectNotFoundError, TaskNotFoundError } from "../errors";
 
 const MOCK_TASKS: TaskWithComments[] = [
   {
@@ -59,7 +54,7 @@ const MOCK_TASKS: TaskWithComments[] = [
   },
 ];
 
-const USE_MOCK_SERVICES = import.meta.env.PUBLIC_MOCK_SERVICES === 'true';
+const USE_MOCK_SERVICES = import.meta.env.PUBLIC_MOCK_SERVICES === "true";
 
 export interface GetTasksFilters {
   projectId?: string;
@@ -89,20 +84,18 @@ export class TaskService {
     this.supabase = supabase;
   }
 
-  public async getTasks(
-    options: GetTasksOptions
-  ): Promise<{ data: TaskWithComments[]; count: number }> {
+  public async getTasks(options: GetTasksOptions): Promise<{ data: TaskWithComments[]; count: number }> {
     if (USE_MOCK_SERVICES) {
       console.log("Using mock TaskService.getTasks");
       const { filters } = options;
       return new Promise((resolve) => {
         setTimeout(() => {
-          let filteredTasks = MOCK_TASKS.filter(task => {
+          let filteredTasks = MOCK_TASKS.filter((task) => {
             let match = true;
             if (filters.projectId && task.project_id !== filters.projectId) {
               match = false;
             }
-             if (filters.parentId !== undefined) {
+            if (filters.parentId !== undefined) {
               if (filters.parentId === null && task.parent_id !== null) {
                 match = false;
               } else if (filters.parentId !== null && task.parent_id !== filters.parentId) {
@@ -182,10 +175,7 @@ export class TaskService {
     return { data: data || [], count: count || 0 };
   }
 
-  public async createTask(
-    command: TaskCreateCommand,
-    auth: { userId?: string; projectId?: string }
-  ): Promise<Task> {
+  public async createTask(command: TaskCreateCommand, auth: { userId?: string; projectId?: string }): Promise<Task> {
     // 1. Determine Project ID and check for auth
     const projectId = auth.userId ? command.project_id : auth.projectId;
     const createdByAi = !!auth.projectId;
@@ -218,9 +208,7 @@ export class TaskService {
       }
 
       if (parentTask.project_id !== projectId) {
-        throw new AuthorizationError(
-          "Parent task does not belong to the specified project."
-        );
+        throw new AuthorizationError("Parent task does not belong to the specified project.");
       }
 
       // AI-specific rules
@@ -230,10 +218,7 @@ export class TaskService {
     }
 
     // 4. Calculate new position
-    const positionQuery = this.supabase
-      .from("tasks")
-      .select("position")
-      .eq("project_id", projectId);
+    const positionQuery = this.supabase.from("tasks").select("position").eq("project_id", projectId);
 
     if (command.parent_id) {
       positionQuery.eq("parent_id", command.parent_id);
@@ -275,16 +260,8 @@ export class TaskService {
 
     return newTask;
   }
-  public async getTaskById({
-    taskId,
-  }: {
-    taskId: string;
-  }): Promise<Task> {
-    const { data, error } = await this.supabase
-      .from("tasks")
-      .select("*")
-      .eq("id", taskId)
-      .single();
+  public async getTaskById({ taskId }: { taskId: string }): Promise<Task> {
+    const { data, error } = await this.supabase.from("tasks").select("*").eq("id", taskId).single();
 
     if (error || !data) {
       if (error && error.code !== "PGRST116") {
@@ -330,9 +307,7 @@ export class TaskService {
         throw new AuthorizationError("AI is not allowed to change the delegation status.");
       }
       if (data.status_id !== undefined) {
-        throw new AuthorizationError(
-          "AI is not allowed to change the task status directly."
-        );
+        throw new AuthorizationError("AI is not allowed to change the task status directly.");
       }
     }
 
@@ -378,10 +353,10 @@ export class TaskService {
       3: 5, // Propose 'Canceled' -> Set 'Canceled, pending confirmation'
     };
 
-    if (
-      !Object.keys(PENDING_STATUS_MAP).map(Number).includes(new_status_id)
-    ) {
-      throw new InvalidStateError("Invalid status transition proposed. AI can only propose 'Done' (2) or 'Canceled' (3).");
+    if (!Object.keys(PENDING_STATUS_MAP).map(Number).includes(new_status_id)) {
+      throw new InvalidStateError(
+        "Invalid status transition proposed. AI can only propose 'Done' (2) or 'Canceled' (3)."
+      );
     }
 
     const pendingStatusId = PENDING_STATUS_MAP[new_status_id];
@@ -405,10 +380,7 @@ export class TaskService {
     return updatedTask;
   }
 
-  public async acceptStatusProposal(
-    taskId: string,
-    userId: string
-  ): Promise<Task> {
+  public async acceptStatusProposal(taskId: string, userId: string): Promise<Task> {
     const { data, error } = await this.supabase
       .rpc("accept_task_proposal", {
         p_task_id: taskId,
@@ -439,11 +411,7 @@ export class TaskService {
     return data;
   }
 
-  public async rejectProposal(
-    taskId: string,
-    userId: string,
-    comment: string
-  ): Promise<Task> {
+  public async rejectProposal(taskId: string, userId: string, comment: string): Promise<Task> {
     // 1. Fetch the task and its project to verify ownership
     const { data: task, error: fetchError } = await this.supabase
       .from("tasks")
@@ -463,9 +431,7 @@ export class TaskService {
     // 3. Check if the task is awaiting acceptance
     const validStatusIds = [4, 5]; // 4: Done, pending acceptance, 5: Canceled, pending confirmation
     if (!validStatusIds.includes(task.status_id)) {
-      throw new InvalidStateError(
-        "This task is not awaiting acceptance and its proposal cannot be rejected."
-      );
+      throw new InvalidStateError("This task is not awaiting acceptance and its proposal cannot be rejected.");
     }
 
     // 4. Call the RPC function to perform the rejection
@@ -485,181 +451,136 @@ export class TaskService {
     return updatedTask;
   }
 
-    public async reorderTasks(
+  public async reorderTasks(
+    userId: string,
 
-      userId: string,
+    dto: ReorderTasksDto
+  ): Promise<void> {
+    const taskIds = dto.tasks.map((t) => t.id);
 
-      dto: ReorderTasksDto
+    // 1. Fetch all tasks at once
 
-    ): Promise<void> {
+    const { data: tasks, error: fetchError } = await this.supabase
 
-      const taskIds = dto.tasks.map((t) => t.id);
+      .from("tasks")
 
-  
+      .select("id, project_id")
 
-      // 1. Fetch all tasks at once
+      .in("id", taskIds);
 
-      const { data: tasks, error: fetchError } = await this.supabase
+    if (fetchError) {
+      console.error("Error fetching tasks for reorder:", fetchError);
 
-        .from("tasks")
-
-        .select("id, project_id")
-
-        .in("id", taskIds);
-
-  
-
-      if (fetchError) {
-
-        console.error("Error fetching tasks for reorder:", fetchError);
-
-        throw new Error("Could not fetch tasks for reordering.");
-
-      }
-
-  
-
-      // 2. Verify all tasks were found
-
-      if (tasks.length !== taskIds.length) {
-
-        const foundIds = new Set(tasks.map((t) => t.id));
-
-        const notFound = taskIds.filter((id) => !foundIds.has(id));
-
-        throw new TaskNotFoundError(`Tasks not found: ${notFound.join(", ")}`);
-
-      }
-
-  
-
-      // 3. Verify all tasks belong to the same project and get the project ID
-
-      const projectId = tasks[0]?.project_id;
-
-      if (!projectId || !tasks.every((t) => t.project_id === projectId)) {
-
-        throw new InvalidStateError(
-
-          "All tasks must belong to the same project."
-
-        );
-
-      }
-
-  
-
-      // 4. Verify user has access to this project
-
-      const { data: project, error: projectError } = await this.supabase
-
-        .from("projects")
-
-        .select("id")
-
-        .eq("id", projectId)
-
-        .eq("user_id", userId)
-
-        .single();
-
-  
-
-      if (projectError || !project) {
-
-        throw new AuthorizationError(
-
-          "User does not have access to this project."
-
-        );
-
-      }
-
-  
-
-      // 5. Call RPC to update positions in a transaction
-
-      const { error: rpcError } = await this.supabase.rpc("reorder_tasks", {
-
-        tasks_to_reorder: dto.tasks,
-
-      });
-
-  
-
-      if (rpcError) {
-
-        console.error("RPC error reordering tasks:", rpcError);
-
-        throw new Error("Failed to reorder tasks.");
-
-      }
-
+      throw new Error("Could not fetch tasks for reordering.");
     }
 
-  
+    // 2. Verify all tasks were found
 
-    public async getBreadcrumbs(
-      projectId: string,
-      taskId: string | undefined,
-      supabase: SupabaseClient
-    ): Promise<IBreadcrumb[]> {
-      const breadcrumbs: IBreadcrumb[] = [
-        { name: 'Projects', href: '/projects' }
-      ];
-  
-      // 1. Get project details
-      const { data: project, error: projectError } = await supabase
-        .from('projects')
-        .select('id, name')
-        .eq('id', projectId)
-        .single();
-  
-      if (projectError || !project) {
-        throw new ProjectNotFoundError();
-      }
-  
-      breadcrumbs.push({
-        name: project.name,
-        href: `/projects/${project.id}`,
-      });
-  
-      if (!taskId) {
-        breadcrumbs[breadcrumbs.length - 1].current = true;
-        return breadcrumbs;
-      }
-  
-      // 2. Recursively fetch parent tasks
-      const taskCrumbs: IBreadcrumb[] = [];
-      let currentTaskId: string | null = taskId;
-  
-      while (currentTaskId) {
-        const { data: task, error: taskError } = await supabase
-          .from('tasks')
-          .select('id, title, parent_id')
-          .eq('id', currentTaskId)
-          .single();
-  
-        if (taskError || !task) {
-          // If a task in the chain is not found, stop building the breadcrumb
-          break;
-        }
-  
-        taskCrumbs.unshift({
-          name: task.title,
-          href: `/projects/${projectId}/tasks/${task.id}`,
-        });
-  
-        currentTaskId = task.parent_id;
-      }
-  
-      // 3. Combine and set the 'current' flag
-      const finalBreadcrumbs = [...breadcrumbs, ...taskCrumbs];
-      if (finalBreadcrumbs.length > 0) {
-        finalBreadcrumbs[finalBreadcrumbs.length - 1].current = true;
-      }
-  
-      return finalBreadcrumbs;
+    if (tasks.length !== taskIds.length) {
+      const foundIds = new Set(tasks.map((t) => t.id));
+
+      const notFound = taskIds.filter((id) => !foundIds.has(id));
+
+      throw new TaskNotFoundError(`Tasks not found: ${notFound.join(", ")}`);
     }
 
+    // 3. Verify all tasks belong to the same project and get the project ID
+
+    const projectId = tasks[0]?.project_id;
+
+    if (!projectId || !tasks.every((t) => t.project_id === projectId)) {
+      throw new InvalidStateError("All tasks must belong to the same project.");
+    }
+
+    // 4. Verify user has access to this project
+
+    const { data: project, error: projectError } = await this.supabase
+
+      .from("projects")
+
+      .select("id")
+
+      .eq("id", projectId)
+
+      .eq("user_id", userId)
+
+      .single();
+
+    if (projectError || !project) {
+      throw new AuthorizationError("User does not have access to this project.");
+    }
+
+    // 5. Call RPC to update positions in a transaction
+
+    const { error: rpcError } = await this.supabase.rpc("reorder_tasks", {
+      tasks_to_reorder: dto.tasks,
+    });
+
+    if (rpcError) {
+      console.error("RPC error reordering tasks:", rpcError);
+
+      throw new Error("Failed to reorder tasks.");
+    }
   }
+
+  public async getBreadcrumbs(
+    projectId: string,
+    taskId: string | undefined,
+    supabase: SupabaseClient
+  ): Promise<IBreadcrumb[]> {
+    const breadcrumbs: IBreadcrumb[] = [{ name: "Projects", href: "/projects" }];
+
+    // 1. Get project details
+    const { data: project, error: projectError } = await supabase
+      .from("projects")
+      .select("id, name")
+      .eq("id", projectId)
+      .single();
+
+    if (projectError || !project) {
+      throw new ProjectNotFoundError();
+    }
+
+    breadcrumbs.push({
+      name: project.name,
+      href: `/projects/${project.id}`,
+    });
+
+    if (!taskId) {
+      breadcrumbs[breadcrumbs.length - 1].current = true;
+      return breadcrumbs;
+    }
+
+    // 2. Recursively fetch parent tasks
+    const taskCrumbs: IBreadcrumb[] = [];
+    let currentTaskId: string | null = taskId;
+
+    while (currentTaskId) {
+      const { data: task, error: taskError } = await supabase
+        .from("tasks")
+        .select("id, title, parent_id")
+        .eq("id", currentTaskId)
+        .single();
+
+      if (taskError || !task) {
+        // If a task in the chain is not found, stop building the breadcrumb
+        break;
+      }
+
+      taskCrumbs.unshift({
+        name: task.title,
+        href: `/projects/${projectId}/tasks/${task.id}`,
+      });
+
+      currentTaskId = task.parent_id;
+    }
+
+    // 3. Combine and set the 'current' flag
+    const finalBreadcrumbs = [...breadcrumbs, ...taskCrumbs];
+    if (finalBreadcrumbs.length > 0) {
+      finalBreadcrumbs[finalBreadcrumbs.length - 1].current = true;
+    }
+
+    return finalBreadcrumbs;
+  }
+}

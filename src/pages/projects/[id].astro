@@ -1,9 +1,9 @@
 ---
-import { ProjectAndTasksView } from '@/components/features/tasks/ProjectAndTasksView';
-import Layout from '@/layouts/Layout.astro';
-import { ProjectService } from '@/lib/services/project.service';
-import { TaskService } from '@/lib/services/task.service';
-import type { IBreadcrumb, Project, Task } from '@/types';
+import { ProjectAndTasksView } from "@/components/features/tasks/ProjectAndTasksView";
+import Layout from "@/layouts/Layout.astro";
+import { ProjectService } from "@/lib/services/project.service";
+import { TaskService } from "@/lib/services/task.service";
+import type { IBreadcrumb, Project, Task } from "@/types";
 
 export const prerender = false;
 
@@ -11,7 +11,7 @@ const { id: projectId } = Astro.params;
 const { user, supabase } = Astro.locals;
 
 if (!projectId || !user) {
-  return Astro.redirect('/projects');
+  return Astro.redirect("/projects");
 }
 
 const projectService = new ProjectService();
@@ -37,14 +37,14 @@ try {
   initialTasks = tasksResult.data;
   breadcrumbs = breadcrumbsResult;
 } catch (e) {
-  error = e instanceof Error ? e : new Error('An unknown error occurred');
+  error = e instanceof Error ? e : new Error("An unknown error occurred");
   console.error(e);
 }
 
 // Redirect if the project is not found or there was a critical error
 if (!project) {
   // TODO: Add a user-facing error message to the page it redirects to
-  return Astro.redirect('/projects');
+  return Astro.redirect("/projects");
 }
 ---
 

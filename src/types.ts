@@ -1,21 +1,21 @@
-import { z } from 'zod';
-import type { ReorderTasksDtoSchema } from './lib/schemas/task.schemas';
-import type { Tables } from '@/db/database.types';
+import { z } from "zod";
+import type { ReorderTasksDtoSchema } from "./lib/schemas/task.schemas";
+import type { Tables } from "@/db/database.types";
 
 // #region Base Entity Types
 // These are direct references to the database table types.
 
 /** Represents the full "projects" table entity. */
-export type Project = Tables<'projects'>;
+export type Project = Tables<"projects">;
 
 /** Represents the full "tasks" table entity. */
-export type Task = Tables<'tasks'>;
+export type Task = Tables<"tasks">;
 
 /** Represents the full "task_statuses" table entity. */
-export type TaskStatus = Tables<'task_statuses'>;
+export type TaskStatus = Tables<"task_statuses">;
 
 /** Represents the full "task_comments" table entity. */
-export type TaskComment = Tables<'task_comments'>;
+export type TaskComment = Tables<"task_comments">;
 
 /** Represents a task with its associated comments embedded. */
 export type TaskWithComments = Task & { task_comments?: TaskComment[] };
@@ -29,24 +29,21 @@ export type TaskWithComments = Task & { task_comments?: TaskComment[] };
  * Omits sensitive or irrelevant fields for a summary view.
  * Used in: `GET /projects`
  */
-export type ProjectGetDto = Pick<Project, 'id' | 'name' | 'description' | 'created_at'>;
+export type ProjectGetDto = Pick<Project, "id" | "name" | "description" | "created_at">;
 
 /**
  * DTO for getting the detailed view of a single project.
  * Includes the `api_key` which should be handled with care.
  * Used in: `GET /projects/{id}`
  */
-export type ProjectGetDetailsDto = Pick<
-	Project,
-	'id' | 'name' | 'description' | 'api_key' | 'created_at'
->;
+export type ProjectGetDetailsDto = Pick<Project, "id" | "name" | "description" | "api_key" | "created_at">;
 
 /**
  * Command model for creating a new project.
  * Specifies the fields required from the client.
  * Used in: `POST /projects`
  */
-export type ProjectCreateCommand = Pick<Project, 'name' | 'description'>;
+export type ProjectCreateCommand = Pick<Project, "name" | "description">;
 
 /**
  * DTO for the result of creating a new project.
@@ -60,7 +57,7 @@ export type ProjectCreateResultDto = Project;
  * Specifies the fields that can be updated by the client.
  * Used in: `PUT /projects/{id}`
  */
-export type ProjectUpdateCommand = Pick<Project, 'name' | 'description'>;
+export type ProjectUpdateCommand = Pick<Project, "name" | "description">;
 
 /**
  * DTO for the result of updating a project.
@@ -74,7 +71,7 @@ export type ProjectUpdateResultDto = Project;
  * Returns only the new `api_key`.
  * Used in: `POST /projects/{id}/regenerate-api-key` (Response)
  */
-export type RegenerateApiKeyResultDto = Pick<Project, 'api_key'>;
+export type RegenerateApiKeyResultDto = Pick<Project, "api_key">;
 
 // #endregion
 
@@ -92,8 +89,7 @@ export type TaskGetDto = Task;
  * `project_id` is optional because for AI agents, it's inferred from the API key.
  * Used in: `POST /tasks`
  */
-export type TaskCreateCommand = Pick<Task, 'parent_id' | 'title' | 'description'> &
-	Partial<Pick<Task, 'project_id'>>;
+export type TaskCreateCommand = Pick<Task, "parent_id" | "title" | "description"> & Partial<Pick<Task, "project_id">>;
 
 /**
  * Command model for updating a task.
@@ -101,9 +97,7 @@ export type TaskCreateCommand = Pick<Task, 'parent_id' | 'title' | 'description'
  * `is_delegated` can only be updated by a human user.
  * Used in: `PATCH /tasks/{id}`
  */
-export type TaskUpdateCommand = Partial<
-	Pick<Task, 'title' | 'description' | 'status_id' | 'is_delegated'>
->;
+export type TaskUpdateCommand = Partial<Pick<Task, "title" | "description" | "status_id" | "is_delegated">>;
 
 /**
  * Command model for an AI to propose a status change for a task.
@@ -111,8 +105,8 @@ export type TaskUpdateCommand = Partial<
  * Used in: `POST /tasks/{id}/propose-status`
  */
 export type TaskProposeStatusCommand = {
-	new_status_id: Task['status_id'];
-	comment: TaskComment['comment'];
+  new_status_id: Task["status_id"];
+  comment: TaskComment["comment"];
 };
 
 /**
@@ -120,7 +114,7 @@ export type TaskProposeStatusCommand = {
  * Requires a comment explaining the reason for rejection.
  * Used in: `POST /tasks/{id}/reject-proposal`
  */
-export type TaskRejectProposalCommand = Pick<TaskComment, 'comment'>;
+export type TaskRejectProposalCommand = Pick<TaskComment, "comment">;
 
 /**
  * DTO for reordering tasks.
@@ -148,29 +142,29 @@ export type TaskStatusGetDto = TaskStatus;
  * Contains a simplified structure and a client-side navigation link.
  */
 export type ProjectViewModel = {
-	id: string;
-	name: string;
-	description: string | null;
-	href: string; // e.g., /projects/uuid-1234
+  id: string;
+  name: string;
+  description: string | null;
+  href: string; // e.g., /projects/uuid-1234
 };
 
 /**
  * View model for representing a breadcrumb link in the UI.
  */
 export interface IBreadcrumb {
-	name: string;
-	href: string;
-	current?: boolean;
+  name: string;
+  href: string;
+  current?: boolean;
 }
 
 /**
  * View model for a task, extending the base DTO with UI-specific state.
  */
 export interface TaskViewModel extends TaskWithComments {
-	isMutating?: boolean;
-	isError?: boolean;
-	isPendingUserAction?: boolean;
-	aiProposalComment?: TaskComment;
+  isMutating?: boolean;
+  isError?: boolean;
+  isPendingUserAction?: boolean;
+  aiProposalComment?: TaskComment;
 }
 
 // #endregion
