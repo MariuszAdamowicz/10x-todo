@@ -16,7 +16,7 @@ Widok "Moje Projekty" jest osadzony w głównym układzie aplikacji, który zape
 
 ### `Header.astro`
 - **Lokalizacja:** `/src/components/layout/Header.astro` (do utworzenia)
-- **Opis:** Komponent nagłówka, który będzie wyświetlał nazwę aplikacji, np. "10x To-Do App", i ewentualnie linki nawigacyjne. Zostanie umieszczony w `Layout.astro`, aby był widoczny we wszystkich widokach.
+- **Opis:** Komponent nagłówka, który będzie wyświetlał nazwę aplikacji, np. "10x To-Do App", i ewentualnie linki nawigacyjne. Będzie również zawierał przełącznik motywu (Light/Dark Mode), który pozwoli użytkownikowi na zmianę wyglądu aplikacji. Zostanie umieszczony w `Layout.astro`, aby był widoczny we wszystkich widokach.
 
 ## 4. Struktura komponentów
 Widok zostanie zaimplementowany jako strona Astro (`.astro`), która renderuje główny komponent kliencki React (`.tsx`).

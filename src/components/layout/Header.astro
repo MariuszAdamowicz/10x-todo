@@ -1,5 +1,9 @@
-<header class="bg-gray-800 text-white p-4">
-  <div class="container mx-auto">
+---
+import { ThemeToggle } from '@/components/features/theme/ThemeToggle';
+---
+<header class="bg-background border-b">
+  <div class="container mx-auto flex justify-between items-center p-4">
     <h1 class="text-xl font-bold">10x To-Do App</h1>
+    <ThemeToggle client:load />
   </div>
 </header>
