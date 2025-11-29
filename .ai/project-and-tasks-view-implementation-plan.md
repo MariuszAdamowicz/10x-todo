@@ -4,17 +4,18 @@
 Widok Projektu i Zadań jest centralnym interfejsem aplikacji do zarządzania hierarchiczną listą zadań w ramach jednego projektu. Umożliwia użytkownikom tworzenie, edycję, usuwanie i reorganizację zadań. Kluczową funkcją jest nawigacja w głąb struktury zadań (drill-down), delegowanie zadań do asystenta AI oraz zarządzanie cyklem życia propozycji zmian statusu zgłaszanych przez AI. Widok jest w pełni interaktywny, wykorzystuje mechanizmy "Optimistic UI" dla płynnego doświadczenia użytkownika i jest zbudowany z myślą o dostępności.
 
 ## 2. Routing widoku
-Widok będzie dostępny pod dynamiczną ścieżką, która obsługuje zagnieżdżone zadania:
-- **Ścieżka:** `/projects/[projectId]/tasks/[taskId]`
+Widok będzie dostępny pod dwiema dynamicznymi ścieżkami, które obsługują zagnieżdżone zadania:
+- **Ścieżka główna:** `/projects/[projectId]` - dla zadań najwyższego poziomu.
+- **Ścieżka zagnieżdżona:** `/projects/[projectId]/tasks/[taskId]` - dla pod-zadań.
 - **Parametry:**
     - `[projectId]`: Identyfikator UUID projektu.
-    - `[taskId]`: Opcjonalny segment "catch-all" zawierający ID zadania nadrzędnego. Np. `/tasks/task2_id` będzie wyświetlać pod-zadania dla `task2_id`. Jeśli segment jest pusty, wyświetlane są zadania najwyższego poziomu.
+    - `[taskId]`: Identyfikator UUID zadania nadrzędnego.
 
 ## 3. Struktura komponentów
 Hierarchia komponentów została zaprojektowana w celu oddzielenia logiki serwerowej (Astro) od interaktywności klienta (React).
 
 ```
-- ProjectTasksView (Astro Page: /src/pages/projects/[projectId]/tasks/[taskId].astro)
+- ProjectAndTasksView (React Component: /src/components/features/tasks/ProjectAndTasksView.tsx)
   - Layout (Astro)
     - Header (Astro/React)
       - Breadcrumbs (React)
@@ -39,15 +40,15 @@ Hierarchia komponentów została zaprojektowana w celu oddzielenia logiki serwer
 
 ## 4. Szczegóły komponentów
 
-### `ProjectTasksView.astro` (Strona Astro)
-- **Opis:** Główny plik strony. Odpowiada za logikę po stronie serwera: parsowanie parametrów URL (`projectId`, `taskId`), pobieranie początkowych danych (dane projektu, zadania dla danego poziomu, dane do breadcrumbs) oraz renderowanie komponentu `TaskList` z przekazaniem mu początkowych danych.
-- **Główne elementy:** Komponent `Layout.astro`, komponent `<TaskList client:load />`.
+### `[id].astro` i `[taskId].astro` (Strony Astro)
+- **Opis:** Główne pliki stron. Odpowiadają za logikę po stronie serwera: parsowanie parametrów URL (`projectId`, `taskId`), pobieranie początkowych danych (dane projektu, zadania dla danego poziomu, dane do breadcrumbs) oraz renderowanie komponentu `ProjectAndTasksView` z przekazaniem mu początkowych danych.
+- **Główne elementy:** Komponent `Layout.astro`, komponent `<ProjectAndTasksView client:load />`.
 - **Obsługiwane interakcje:** Brak (renderowanie po stronie serwera).
-- **Typy:** `Project`, `Task[]`, `IBreadcrumb[]`.
-- **Propsy:** Brak (jest to strona, a nie komponent).
+- **Typy:** `Project`, `Task[]`.
+- **Propsy:** Brak (są to strony, a nie komponenty).
 
 ### `Breadcrumbs` (React)
-- **Opis:** Wyświetla ścieżkę nawigacyjną od nazwy projektu do bieżącego poziomu zagnieżdżenia zadań. Ostatni element nie jest linkiem.
+- **Opis:** Wyświetla ścieżkę nawigacyjną. Powinna zaczynać się od linku "Projects" prowadzącego do listy projektów, następnie nazwy bieżącego projektu, aż do aktualnego poziomu zagnieżdżenia zadań. Ostatni element nie jest linkiem.
 - **Główne elementy:** Lista linków (`<a>`) i tekst. Użycie komponentu `Breadcrumb` z Shadcn/ui.
 - **Obsługiwane interakcje:** Kliknięcie na element ścieżki nawiguje do odpowiedniego poziomu.
 - **Typy:** `IBreadcrumb[]`.
