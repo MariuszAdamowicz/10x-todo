@@ -26,7 +26,7 @@ try {
   const [projectResult, tasksResult, breadcrumbsResult] = await Promise.all([
     projectService.getProjectById(supabase, projectId, user.id),
     taskService.getTasks({
-      filters: { projectId: projectId, parentId: undefined },
+      filters: { projectId: projectId, parentId: null },
       pagination: { page: 1, limit: 100 }, // TODO: Implement real pagination
       auth: { userId: user.id },
     }),
