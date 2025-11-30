@@ -13,35 +13,28 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { useTasks } from "@/components/hooks/useTasks";
-import type { Task, TaskViewModel } from "@/types";
-import { useState } from "react";
-import { RejectProposalDialog } from "./RejectProposalDialog";
+import type { TaskUpdateCommand, TaskViewModel } from "@/types";
 import { TaskItem } from "./TaskItem";
-import { TaskListHeader } from "./TaskListHeader";
 
 export interface TaskListProps {
-  initialTasks: Task[];
   projectId: string;
-  parentId: string | null;
+  tasks: TaskViewModel[];
+  onUpdateTask: (taskId: string, data: Partial<TaskUpdateCommand>) => void;
+  onReorderTasks: (reorderedTasks: TaskViewModel[]) => void;
+  onAcceptProposal: (taskId: string) => void;
+  onRejectProposal: (task: TaskViewModel) => void;
+  onCancelTask: (taskId: string) => void;
 }
 
-export function TaskList({ initialTasks, projectId, parentId }: TaskListProps) {
-  const {
-    tasks,
-    addTask,
-    updateTask,
-    delegateTask,
-    cancelTask,
-    reorderTasks,
-    acceptProposal,
-    rejectProposal,
-    isLoading,
-  } = useTasks(initialTasks, projectId, parentId);
-
-  const [isRejecting, setIsRejecting] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<TaskViewModel | null>(null);
-
+export function TaskList({
+  projectId,
+  tasks,
+  onUpdateTask,
+  onReorderTasks,
+  onAcceptProposal,
+  onRejectProposal,
+  onCancelTask,
+}: TaskListProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -56,7 +49,7 @@ export function TaskList({ initialTasks, projectId, parentId }: TaskListProps) {
       const oldIndex = tasks.findIndex((t) => t.id === active.id);
       const newIndex = tasks.findIndex((t) => t.id === over.id);
       const reordered = arrayMove(tasks, oldIndex, newIndex);
-      reorderTasks(reordered);
+      onReorderTasks(reordered);
     }
   };
 
@@ -64,52 +57,23 @@ export function TaskList({ initialTasks, projectId, parentId }: TaskListProps) {
     window.location.href = `/projects/${projectId}/tasks/${taskId}`;
   };
 
-  const handleAddSubtask = (taskId: string) => {
-    // TODO: Implement add subtask
-    console.log("Adding subtask for:", taskId);
-  };
-
-  const handleOpenRejectDialog = (task: TaskViewModel) => {
-    setSelectedTask(task);
-    setIsRejecting(true);
-  };
-
-  const handleRejectSubmit = (comment: string) => {
-    if (selectedTask) {
-      rejectProposal(selectedTask.id, comment);
-    }
-    setIsRejecting(false);
-    setSelectedTask(null);
-  };
-
   return (
-    <div>
-      <TaskListHeader onAddTask={addTask} isLoading={isLoading} />
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={tasks} strategy={verticalListSortingStrategy}>
-          <ul className="mt-4 space-y-2">
-            {tasks.map((task) => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                onUpdate={updateTask}
-                onNavigate={handleNavigate}
-                onDelegate={delegateTask}
-                onCancel={cancelTask}
-                onAddSubtask={handleAddSubtask}
-                onAcceptProposal={acceptProposal}
-                onRejectProposal={handleOpenRejectDialog}
-              />
-            ))}
-          </ul>
-        </SortableContext>
-      </DndContext>
-      <RejectProposalDialog
-        isOpen={isRejecting}
-        onClose={() => setIsRejecting(false)}
-        onSubmit={handleRejectSubmit}
-        isLoading={selectedTask?.isMutating ?? false}
-      />
-    </div>
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <SortableContext items={tasks} strategy={verticalListSortingStrategy}>
+        <ul className="mt-4 space-y-2">
+          {tasks.map((task) => (
+            <TaskItem
+              key={task.id}
+              task={task}
+              onUpdate={onUpdateTask}
+              onNavigate={handleNavigate}
+              onCancel={onCancelTask}
+              onAcceptProposal={onAcceptProposal}
+              onRejectProposal={onRejectProposal}
+            />
+          ))}
+        </ul>
+      </SortableContext>
+    </DndContext>
   );
 }

@@ -1,20 +1,21 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical } from "lucide-react";
+import { GripVertical, Bot, User } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import type { TaskViewModel } from "@/types";
+import type { TaskUpdateCommand, TaskViewModel } from "@/types";
 import { useState } from "react";
 import { ActionButtons } from "./ActionButtons";
 import { ProposalNotification } from "./ProposalNotification";
+import { Toggle } from "@/components/ui/toggle";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 export interface TaskItemProps {
   task: TaskViewModel;
-  onUpdate: (id: string, data: Partial<TaskViewModel>) => void;
+  onUpdate: (id: string, data: Partial<TaskUpdateCommand>) => void;
   onNavigate: (id: string) => void;
-  onDelegate: (id: string) => void;
   onCancel: (id: string) => void;
-  onAddSubtask: (id: string) => void;
   onAcceptProposal: (id: string) => void;
   onRejectProposal: (task: TaskViewModel) => void;
 }
@@ -23,9 +24,7 @@ export function TaskItem({
   task,
   onUpdate,
   onNavigate,
-  onDelegate,
   onCancel,
-  onAddSubtask,
   onAcceptProposal,
   onRejectProposal,
 }: TaskItemProps) {
@@ -36,7 +35,7 @@ export function TaskItem({
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
-    disabled: isPendingUserAction,
+    disabled: isPendingUserAction || isEditing || task.status_id !== 1,
   });
 
   const style = {
@@ -58,52 +57,120 @@ export function TaskItem({
 
   const handleStatusChange = (checked: boolean) => {
     const newStatus = checked ? 2 : 1; // 2: Done, 1: To Do
-    if (task.status_id === 3 && !checked) {
-      // From Canceled to To Do
-      onUpdate(task.id, { status_id: 1 });
-    } else {
-      onUpdate(task.id, { status_id: newStatus });
+    onUpdate(task.id, { status_id: newStatus });
+  };
+
+  const handleItemClick = () => {
+    if (!isEditing) {
+      onNavigate(task.id);
     }
   };
 
-  const isChecked = task.status_id === 2 || task.status_id === 3;
+  const handleDoubleClick = () => {
+    if (!task.is_delegated && !isPendingUserAction) {
+      setIsEditing(true);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !isEditing) {
+      onNavigate(task.id);
+    }
+  };
+
+  const totalSubtasks =
+    (task.active_subtask_count ?? 0) +
+    (task.completed_subtask_count ?? 0) +
+    (task.canceled_subtask_count ?? 0);
+
+  const canComplete = (task.active_subtask_count ?? 0) === 0;
+  const canDelegate = totalSubtasks === 0;
+
+  const isChecked = task.status_id === 2;
+  const isCanceled = task.status_id === 3;
+  const isLockedByProposal = task.is_delegated && isPendingUserAction;
+
+  const delegateToggleColor = task.is_delegated
+    ? isLockedByProposal
+      ? "bg-red-200 hover:bg-red-300"
+      : "bg-green-200 hover:bg-green-300"
+    : "";
 
   return (
     <li
       ref={setNodeRef}
       style={style}
-      className={`rounded-lg border bg-background p-4 ${
-        task.isMutating ? "opacity-50" : ""
-      } ${isDragging ? "shadow-lg" : ""}`}
+      className={cn(
+        "rounded-lg border bg-background p-4 cursor-pointer",
+        task.isMutating && "opacity-50",
+        isDragging && "shadow-lg",
+        isCanceled && "bg-muted/50"
+      )}
+      onClick={handleItemClick}
+      onDoubleClick={handleDoubleClick}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
     >
       <div className="flex items-center space-x-4">
-        <div {...attributes} {...listeners} className="cursor-grab touch-none p-2">
+        <div {...attributes} {...listeners} className="cursor-grab touch-none p-2" onClick={(e) => e.stopPropagation()}>
           <GripVertical className="h-5 w-5 text-muted-foreground" />
         </div>
-        <Checkbox
-          checked={isChecked}
-          onCheckedChange={handleStatusChange}
-          disabled={task.isMutating || isPendingUserAction}
-        />
-        {isEditing ? (
-          <Input
-            value={title}
-            onChange={handleTitleChange}
-            onBlur={handleTitleBlur}
-            onKeyDown={(e) => e.key === "Enter" && handleTitleBlur()}
-            autoFocus
-            className="flex-1"
+        <div
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.key === "Enter" && e.stopPropagation()}
+          role="button"
+          tabIndex={0}
+        >
+          <Checkbox
+            checked={isChecked}
+            onCheckedChange={handleStatusChange}
+            disabled={task.isMutating || isPendingUserAction || isCanceled || !canComplete}
           />
+        </div>
+        {isEditing ? (
+          <div onClick={(e) => e.stopPropagation()} className="flex-1">
+            <Input
+              value={title}
+              onChange={handleTitleChange}
+              onBlur={handleTitleBlur}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleTitleBlur();
+                e.stopPropagation();
+              }}
+            />
+          </div>
         ) : (
-          <span
-            className={`flex-1 cursor-pointer ${isChecked ? "text-muted-foreground line-through" : ""}`}
-            onClick={() => onNavigate(task.id)}
-            onDoubleClick={() => !task.is_delegated && !isPendingUserAction && setIsEditing(true)}
-          >
+          <span className={cn("flex-1", (isChecked || isCanceled) && "text-muted-foreground line-through")}>
             {task.title}
           </span>
         )}
-        <ActionButtons task={task} onDelegate={onDelegate} onAddSubtask={onAddSubtask} onCancel={onCancel} />
+        <div className="flex items-center space-x-2">
+          {totalSubtasks > 0 && (
+            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+              <Badge variant="outline">{task.active_subtask_count ?? 0}</Badge>
+              <Badge variant="secondary">{task.completed_subtask_count ?? 0}</Badge>
+              <Badge variant="destructive">{task.canceled_subtask_count ?? 0}</Badge>
+            </div>
+          )}
+        </div>
+        <div
+          className="flex items-center space-x-1"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+          role="toolbar"
+        >
+          <Toggle
+            aria-label="Delegate task"
+            pressed={task.is_delegated}
+            onPressedChange={(isPressed) => onUpdate(task.id, { is_delegated: isPressed })}
+            className={delegateToggleColor}
+            disabled={task.isMutating || isLockedByProposal || !canDelegate}
+          >
+            {task.is_delegated ? <Bot className="h-5 w-5" /> : <User className="h-5 w-5" />}
+          </Toggle>
+          <ActionButtons task={task} onCancel={onCancel} />
+        </div>
       </div>
       {isPendingUserAction && task.aiProposalComment && (
         <ProposalNotification

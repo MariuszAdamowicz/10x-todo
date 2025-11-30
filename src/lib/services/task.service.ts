@@ -90,7 +90,7 @@ export class TaskService {
       const { filters } = options;
       return new Promise((resolve) => {
         setTimeout(() => {
-          let filteredTasks = MOCK_TASKS.filter((task) => {
+          const filteredTasks = MOCK_TASKS.filter((task) => {
             let match = true;
             if (filters.projectId && task.project_id !== filters.projectId) {
               match = false;
@@ -104,75 +104,39 @@ export class TaskService {
             }
             return match;
           });
-          resolve({ data: filteredTasks, count: filteredTasks.length });
+          // This mock needs to be updated to include sub-task counts
+          const dataWithCounts = filteredTasks.map(t => ({...t, active_subtask_count: 0, completed_subtask_count: 0, canceled_subtask_count: 0, task_comments: []}))
+          resolve({ data: dataWithCounts, count: filteredTasks.length });
         }, 500);
       });
     }
 
-    const { filters, pagination, auth } = options;
+    const { filters, auth } = options;
+    const { userId } = auth;
+    const { projectId, parentId } = filters;
 
-    // 1. Determine Project ID and check for auth
-    let projectId = filters.projectId;
-    if (auth.aiProjectId) {
-      projectId = auth.aiProjectId;
+    if (!userId || !projectId) {
+      throw new AuthorizationError("User and Project ID are required.");
     }
-
-    if (auth.userId) {
-      if (!filters.projectId) {
-        throw new Error("Project ID is required for user-based queries.");
-      }
-      // Verify user has access to the project
-      const { data: project } = await this.supabase
-        .from("projects")
-        .select("id")
-        .eq("id", filters.projectId)
-        .eq("user_id", auth.userId)
-        .single();
-
-      if (!project) {
-        throw new ProjectNotFoundError("Project not found or user does not have access.");
-      }
-    }
-
-    if (!projectId) {
-      throw new Error("Project ID could not be determined.");
-    }
-
-    // 2. Build dynamic query. Embed comments.
-    const query = this.supabase.from("tasks").select("*, task_comments(*)", { count: "exact" });
-
-    // 3. Apply filters
-    query.eq("project_id", projectId);
-
-    if (filters.parentId) {
-      query.eq("parent_id", filters.parentId);
-    } else if (filters.parentId === null) {
-      query.is("parent_id", null);
-    }
-
-    if (filters.statusId) {
-      query.eq("status_id", filters.statusId);
-    }
-
-    if (filters.delegated !== undefined) {
-      query.eq("is_delegated", filters.delegated);
-    }
-
-    // 4. Apply pagination
-    const { page, limit } = pagination;
-    const rangeFrom = (page - 1) * limit;
-    const rangeTo = page * limit - 1;
-    query.range(rangeFrom, rangeTo);
-
-    // 5. Execute query
-    const { data, error, count } = await query;
+    
+    const { data, error } = await this.supabase.rpc('get_tasks_with_subtask_counts', {
+      p_project_id: projectId,
+      p_user_id: userId,
+      p_parent_id: parentId,
+    })
 
     if (error) {
-      console.error("Error fetching tasks:", error);
+      console.error("Error fetching tasks with counts:", error);
       throw new Error("Failed to fetch tasks.");
     }
 
-    return { data: data || [], count: count || 0 };
+    // The RPC returns comments as a JSONB object. We need to handle the case where it's null.
+    const tasks = data.map(t => ({
+      ...t,
+      task_comments: t.task_comments ?? []
+    }));
+
+    return { data: tasks || [], count: tasks.length || 0 };
   }
 
   public async createTask(command: TaskCreateCommand, auth: { userId?: string; projectId?: string }): Promise<Task> {

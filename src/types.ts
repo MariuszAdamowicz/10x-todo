@@ -8,8 +8,15 @@ import type { Tables } from "@/db/database.types";
 /** Represents the full "projects" table entity. */
 export type Project = Tables<"projects">;
 
-/** Represents the full "tasks" table entity. */
-export type Task = Tables<"tasks">;
+/** Represents the base "tasks" table entity. */
+type BaseTask = Tables<"tasks">;
+
+/** Represents a task with added subtask counts. */
+export interface Task extends BaseTask {
+  active_subtask_count: number;
+  completed_subtask_count: number;
+  canceled_subtask_count: number;
+}
 
 /** Represents the full "task_statuses" table entity. */
 export type TaskStatus = Tables<"task_statuses">;
@@ -104,10 +111,10 @@ export type TaskUpdateCommand = Partial<Pick<Task, "title" | "description" | "st
  * Requires the new status and a comment explaining the change.
  * Used in: `POST /tasks/{id}/propose-status`
  */
-export type TaskProposeStatusCommand = {
+export interface TaskProposeStatusCommand {
   new_status_id: Task["status_id"];
   comment: TaskComment["comment"];
-};
+}
 
 /**
  * Command model for a user to reject an AI's proposed status change.
@@ -141,12 +148,12 @@ export type TaskStatusGetDto = TaskStatus;
  * View model for displaying a project in the UI.
  * Contains a simplified structure and a client-side navigation link.
  */
-export type ProjectViewModel = {
+export interface ProjectViewModel {
   id: string;
   name: string;
   description: string | null;
   href: string; // e.g., /projects/uuid-1234
-};
+}
 
 /**
  * View model for representing a breadcrumb link in the UI.

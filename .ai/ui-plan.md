@@ -67,18 +67,19 @@ Nawigacja opiera się na routingu po stronie klienta z dynamiczną aktualizacją
 - **Nazwa widoku:** Widok Projektu
 - **Ścieżka widoku:** `/projects/[projectId]/tasks/[...taskId]`
 - **Główny cel:** Centralne miejsce do zarządzania zadaniami, ich hierarchią, delegowaniem i interakcją z AI (pokrywa większość historyjek od US-006 do US-016).
-- **Kluczowe informacje do wyświetlenia:** Nazwa projektu, nawigacja okruszkowa, lista zadań dla bieżącego poziomu.
+- **Kluczowe informacje do wyświetlenia:** Nazwa projektu, nawigacja okruszkowa, lista zadań dla bieżącego poziomu. W przypadku widoku pod-zadań, dodatkowy nagłówek z nazwą zadania-rodzica, przełącznikiem delegacji i statystykami pod-zadań.
 - **Kluczowe komponenty widoku:**
   - `Breadcrumb`: Nawigacja okruszkowa pokazująca ścieżkę w hierarchii zadań.
+  - `TaskDetailHeader` (React, warunkowo): Nagłówek dla listy pod-zadań z edytowalną nazwą rodzica, przełącznikiem delegacji i badgami statystyk.
   - `TaskList` (React): Interaktywna lista zadań obsługująca:
     - `TaskItem` (React): Reprezentacja pojedynczego zadania z tytułem, statusem i akcjami.
-    - Wizualne wskaźniki dla zadań delegowanych i propozycji AI.
-    - Przyciski akcji (Akceptuj/Odrzuć, Deleguj, Dodaj pod-zadanie).
-    - Obsługa zmiany kolejności (drag-and-drop z alternatywą klawiaturową).
+    - Wizualne wskaźniki dla zadań delegowanych (za pomocą przełącznika) i propozycji AI.
+    - Przyciski akcji (Akceptuj/Odrzuć).
+    - Obsługa zmiany kolejności (drag-and-drop z alternatywą klawiaturową dla zadań aktywnych).
   - `Skeleton`: Animacja ładowania listy zadań.
   - `Toast` / `Sonner`: Globalne powiadomienia o błędach lub sukcesach.
 - **UX, dostępność i względy bezpieczeństwa:**
-  - **UX:** "Optimistic UI" dla operacji CRUD na zadaniach. Stany ładowania i zablokowane przyciski podczas operacji. Polling w celu synchronizacji danych z AI.
+  - **UX:** "Optimistic UI" dla operacji CRUD. Stany ładowania i zablokowane przyciski podczas operacji. Logika sortowania (aktywne na górze, reszta na dole). Jasne wizualne stany delegacji zadania (można cofnąć / nie można cofnąć).
   - **Dostępność:** Pełne wsparcie dla ARIA, alternatywna obsługa drag-and-drop z klawiatury.
   - **Bezpieczeństwo:** Wszystkie operacje na API są autoryzowane. Walidacja danych wejściowych.
 

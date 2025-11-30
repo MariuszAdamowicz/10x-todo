@@ -20,19 +20,18 @@ Hierarchia komponentów została zaprojektowana w celu oddzielenia logiki serwer
 
 ```
 - ProjectAndTasksView (React Component: /src/components/features/tasks/ProjectAndTasksView.tsx)
-  - ProjectHeader (React)
-    - Project Title & Description
-    - Settings Button
   - Breadcrumbs (React)
+  - TaskDetailHeader (React) - (Wyświetlany tylko dla pod-zadań, tj. gdy parentId !== null)
+    - Editable Task Title (dla zadania-rodzica)
+    - Delegate Toggle (dla zadania-rodzica)
+    - Badges (statystyki pod-zadań: aktywne, zrealizowane, anulowane)
   - TaskList (React)
     - TaskListHeader (React)
       - AddTaskForm (React)
     - TaskItem (React)
       - Checkbox (do zmiany statusu)
-      - TaskTitle (edytowalny tytuł)
+      - TaskTitle (nieedytowalny, kliknięcie nawiguje do pod-zadań)
       - ActionButtons (React)
-        - Button (Deleguj)
-        - Button (Dodaj pod-zadanie)
         - DropdownMenu (Anuluj, etc.)
       - ProposalNotification (React)
         - Button (Akceptuj)
@@ -46,10 +45,10 @@ Hierarchia komponentów została zaprojektowana w celu oddzielenia logiki serwer
 
 ### `[id].astro` i `[taskId].astro` (Strony Astro)
 
-- **Opis:** Główne pliki stron. Odpowiadają za logikę po stronie serwera: parsowanie parametrów URL (`projectId`, `taskId`), pobieranie początkowych danych (dane projektu, zadania dla danego poziomu, dane do breadcrumbs) oraz renderowanie komponentu `ProjectAndTasksView` z przekazaniem mu początkowych danych.
+- **Opis:** Główne pliki stron. Odpowiadają za logikę po stronie serwera: parsowanie parametrów URL (`projectId`, `taskId`), pobieranie początkowych danych (dane projektu, zadania dla danego poziomu, dane do breadcrumbs, dane zadania-rodzica dla `TaskDetailHeader`) oraz renderowanie komponentu `ProjectAndTasksView`.
 - **Główne elementy:** Komponent `Layout.astro`, komponent `<ProjectAndTasksView client:load />`.
 - **Obsługiwane interakcje:** Brak (renderowanie po stronie serwera).
-- **Typy:** `Project`, `Task[]`.
+- **Typy:** `Project`, `Task` (dla rodzica), `Task[]`.
 - **Propsy:** Brak (są to strony, a nie komponenty).
 
 ### `Breadcrumbs` (React)
@@ -60,26 +59,31 @@ Hierarchia komponentów została zaprojektowana w celu oddzielenia logiki serwer
 - **Typy:** `IBreadcrumb[]`.
 - **Propsy:** `items: IBreadcrumb[]`.
 
+### `TaskDetailHeader` (React)
+
+- **Opis:** Wyświetlany tylko w widoku pod-zadań. Zawiera nazwę zadania nadrzędnego, przełącznik do jego delegacji oraz badże ze statystykami pod-zadań.
+- **Główne elementy:** `Input` (dla edycji nazwy rodzica), `Toggle` z ikoną (człowiek/robot), `Badge`.
+- **Obsługiwane interakcje:** Edycja nazwy zadania-rodzica, przełączanie delegacji zadania-rodzica.
+- **Typy:** `Task`.
+- **Propsy:** `parentTask: Task`.
+
 ### `TaskList` (React)
 
-- **Opis:** Główny komponent interaktywny. Zarządza stanem listy zadań, obsługuje operacje CRUD, delegowanie i zmianę kolejności. Renderuje listę komponentów `TaskItem` i implementuje logikę drag-and-drop.
+- **Opis:** Główny komponent interaktywny. Zarządza stanem listy zadań, obsługuje operacje CRUD, i zmianę kolejności. Renderuje listę komponentów `TaskItem` posortowaną według statusu i implementuje logikę drag-and-drop tylko dla aktywnych zadań.
 - **Główne elementy:** Kontener dla `dnd-kit`, `TaskListHeader`, `TaskListSkeleton`, mapowanie `TaskItem`.
-- **Obsługiwane interakcje:** Dodawanie zadania, zmiana kolejności zadań (drag-and-drop).
+- **Obsługiwane interakcje:** Dodawanie zadania, zmiana kolejności aktywnych zadań (drag-and-drop).
 - **Typy:** `TaskViewModel[]`.
 - **Propsy:** `initialTasks: TaskViewModel[]`, `projectId: string`, `parentId: string | null`.
 
 ### `TaskItem` (React)
 
-- **Opis:** Reprezentuje pojedyncze zadanie. Wyświetla tytuł, status i przyciski akcji. Jego wygląd i dostępne akcje zależą od stanu zadania (np. zablokowany po delegacji, wyświetla panel propozycji).
-- **Główne elementy:** `Checkbox`, `Input` (dla edycji tytułu), `Button`, `DropdownMenu` z Shadcn/ui, `ProposalNotification`.
+- **Opis:** Reprezentuje pojedyncze zadanie. Wyświetla tytuł, status i przyciski akcji. Kliknięcie w zadanie nawiguje do jego pod-zadań. Jego wygląd i dostępne akcje zależą od stanu zadania.
+- **Główne elementy:** `Checkbox`, `div` (dla tytułu), `DropdownMenu` z Shadcn/ui, `ProposalNotification`.
 - **Obsługiwane interakcje:**
   - Zmiana statusu na "Zrealizowane".
-  - Edycja tytułu.
-  - Delegowanie do AI.
-  - Dodawanie pod-zadania.
-  - Anulowanie zadania.
+  - Anulowanie zadania (z menu).
   - Akceptacja/odrzucenie propozycji AI.
-  - Nawigacja do pod-zadań.
+  - Nawigacja do pod-zadań (przez kliknięcie).
 - **Obsługiwana walidacja:** Akcje są blokowane, jeśli `task.is_delegated === true` lub `task.isMutating === true`.
 - **Typy:** `TaskViewModel`.
 - **Propsy:** `task: TaskViewModel`, `onUpdate: (id, data) => void`, `onNavigate: (id) => void`, ... (wszystkie akcje przekazywane z `useTasks`).
@@ -134,12 +138,16 @@ Zarządzanie stanem zostanie scentralizowane w niestandardowym hooku `useTasks`,
 - **`useTasks(initialTasks, projectId, parentId)`**
   - **Cel:** Zarządzanie listą zadań (`TaskViewModel[]`), w tym operacjami CRUD, zmianą kolejności i obsługą "Optimistic UI".
   - **Stan wewnętrzny:**
-    - `tasks: TaskViewModel[]`: Aktualna lista zadań do wyświetlenia.
+    - `tasks: TaskViewModel[]`: Aktualna, posortowana lista zadań. Logika sortująca jest stosowana przed każdym renderowaniem:
+      1. Podział na dwie grupy: aktywne (`status_id` 1) i pozostałe.
+      2. Aktywne są sortowane wg pola `order`.
+      3. Pozostałe są sortowane malejąco wg `updated_at`.
+      4. Obie listy są łączone.
     - `isLoading: boolean`: Czy trwa początkowe ładowanie listy.
     - `error: Error | null`: Globalny błąd (np. błąd pobierania listy).
   - **Zwracane akcje:**
     - `addTask(title: string)`
-    - `updateTask(taskId: string, data: Partial<TaskViewModel>)`
+    - `updateTask(taskId: string, data: Partial<TaskViewModel>)` (obsłuży też zmianę statusu na anulowany)
     - `reorderTasks(newOrder: { id: string; order: number }[])`
     - `acceptProposal(taskId: string)`
     - `rejectProposal(taskId: string, comment: string)`
@@ -160,11 +168,12 @@ Integracja z API będzie realizowana poprzez wywołania `fetch` wewnątrz hooka 
 
 ## 8. Interakcje użytkownika
 
-- **Dodawanie zadania:** Użytkownik wpisuje tytuł w `AddTaskForm` i klika "Dodaj". Zadanie pojawia się optymistycznie na liście.
-- **Zmiana statusu:** Użytkownik klika `Checkbox` przy zadaniu. Zadanie jest oznaczane jako ukończone (np. przekreślone).
-- **Zmiana kolejności:** Użytkownik przeciąga zadanie na nową pozycję. Lista aktualizuje się natychmiast. Alternatywnie, używa przycisków "Przesuń w górę/dół" dostępnych z klawiatury.
-- **Delegowanie:** Kliknięcie przycisku "Deleguj" blokuje zadanie do edycji i wizualnie je oznacza.
-- **Nawigacja:** Kliknięcie tytułu zadania, które ma pod-zadania, powoduje przejście do widoku tych pod-zadań i aktualizację `Breadcrumbs`.
+- **Dodawanie zadania:** Użytkownik wpisuje tytuł w `AddTaskForm` i klika "Dodaj". Zadanie pojawia się optymistycznie na dole listy aktywnych zadań.
+- **Zmiana statusu:** Użytkownik klika `Checkbox` przy zadaniu. Zadanie jest oznaczane jako ukończone i optymistycznie przenoszone na dolną część listy do zadań wykonanych.
+- **Zmiana kolejności:** Użytkownik przeciąga aktywne zadanie na nową pozycję w obrębie listy aktywnych zadań. Lista aktualizuje się natychmiast.
+- **Delegowanie:** W widoku pod-zadań, użytkownik klika przełącznik "Deleguj" w `TaskDetailHeader`, aby zmienić stan delegacji zadania-rodzica.
+  Kliknięcie przełącznika "Deleguj" na liście zadań, aby zmienić stan delegacji wskazanego zadania.
+- **Nawigacja:** Kliknięcie tytułu zadania powoduje przejście do widoku pod-zadań i aktualizację `Breadcrumbs`.
 - **Akceptacja/Odrzucenie:** W panelu propozycji AI użytkownik klika "Akceptuj" lub "Odrzuć". Odrzucenie otwiera `RejectProposalDialog`.
 
 ## 9. Warunki i walidacja

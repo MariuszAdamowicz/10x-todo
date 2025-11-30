@@ -20,6 +20,7 @@ const baseConfig = tseslint.config({
   rules: {
     "no-console": "warn",
     "no-unused-vars": "off",
+    "@typescript-eslint/unified-signatures": "off", // Temporarily disabled due to a bug in the plugin
   },
 });
 

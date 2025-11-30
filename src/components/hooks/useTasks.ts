@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { ReorderTasksDto, TaskUpdateCommand, TaskViewModel, TaskWithComments } from "@/types";
 import { toast } from "sonner";
 
@@ -20,8 +20,18 @@ const mapToViewModel = (task: TaskWithComments): TaskViewModel => {
 
 export function useTasks(initialTasks: TaskWithComments[], projectId: string, parentId: string | null) {
   const [tasks, setTasks] = useState<TaskViewModel[]>(() => initialTasks.map(mapToViewModel));
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+
+  const sortedTasks = useMemo(() => {
+    const activeTasks = tasks.filter((task) => task.status_id === 1);
+    const inactiveTasks = tasks.filter((task) => task.status_id !== 1);
+
+    activeTasks.sort((a, b) => a.position - b.position);
+    inactiveTasks.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+
+    return [...activeTasks, ...inactiveTasks];
+  }, [tasks]);
 
   const addTask = async (title: string) => {
     const optimisticId = `optimistic-${Date.now()}`;
@@ -39,6 +49,9 @@ export function useTasks(initialTasks: TaskWithComments[], projectId: string, pa
       created_by_ai: false,
       isMutating: true,
       task_comments: [],
+      active_subtask_count: 0,
+      completed_subtask_count: 0,
+      canceled_subtask_count: 0,
     };
 
     setTasks((currentTasks) => [...currentTasks, newTask]);
@@ -101,12 +114,23 @@ export function useTasks(initialTasks: TaskWithComments[], projectId: string, pa
 
   const reorderTasks = async (reorderedTasks: TaskViewModel[]) => {
     const originalTasks = tasks;
-    setTasks(reorderedTasks);
+
+    // We only care about the reordering of active tasks.
+    const activeReordered = reorderedTasks.filter((t) => t.status_id === 1);
+    const activeWithNewPositions = activeReordered.map((task, index) => ({
+      ...task,
+      position: index, // Assign new sequential positions
+    }));
+
+    const updatedTasksMap = new Map(activeWithNewPositions.map((t) => [t.id, t]));
+    const newTasksState = originalTasks.map((t) => updatedTasksMap.get(t.id) || t);
+
+    setTasks(newTasksState);
 
     const dto: ReorderTasksDto = {
-      tasks: reorderedTasks.map((task, index) => ({
-        id: task.id,
-        order: index,
+      tasks: activeWithNewPositions.map(({ id, position }) => ({
+        id,
+        order: position,
       })),
     };
 
@@ -179,7 +203,7 @@ export function useTasks(initialTasks: TaskWithComments[], projectId: string, pa
   };
 
   return {
-    tasks,
+    tasks: sortedTasks,
     isLoading,
     error,
     addTask,

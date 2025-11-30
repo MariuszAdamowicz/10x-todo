@@ -14,9 +14,9 @@ Programiści, którzy tworzą własne skrypty automatyzujące lub asystentów AI
 - F-02: Zarządzanie projektami: Użytkownik może tworzyć projekty. Każdy projekt zawiera nazwę, opis i jest przypisany do użytkownika.
 - F-03: Klucz API: Dla każdego projektu automatycznie generowany jest unikalny klucz API, służący do uwierzytelniania asystenta AI.
 - F-04: Hierarchiczne zadania: Użytkownicy mogą tworzyć zadania i dowolnie je zagnieżdżać, tworząc hierarchiczną strukturę.
-- F-05: Delegowanie zadań: Użytkownik może delegować dowolne zadanie asystentowi AI. Delegowanego zadania nie można cofnąć, jeśli asystent rozpoczął nad nim pracę.
+- F-05: Delegowanie zadań: Użytkownik może delegować dowolne zadanie asystentowi AI za pomocą dedykowanego przełącznika. Delegacja może zostać cofnięta, dopóki asystent nie rozpocznie pracy nad zadaniem (stan delegacji jest odpowiednio oznaczony kolorystycznie w UI).
 - F-06: Cykl życia zadania: Zadania mogą przyjmować następujące stany: "Do zrobienia", "Zrealizowane", "Anulowane", "Zrealizowane, do akceptacji", "Anulowane, do potwierdzenia". Stany "Zrealizowane" i "Anulowane" są ostateczne.
-- F-07: Interfejs użytkownika (UI): Interfejs webowy będzie przedstawiał hierarchię zadań w formie "drill-down" (jeden poziom na raz). Zadania zrealizowane i anulowane będą domyślnie ukryte, z możliwością ich pokazania.
+- F-07: Interfejs użytkownika (UI): Interfejs webowy będzie przedstawiał hierarchię zadań w formie "drill-down". Po wejściu na poziom pod-zadań, widok będzie zawierał nagłówek z nazwą zadania nadrzędnego, przełącznikiem do jego delegacji oraz informacjami o liczbie pod-zadań. Zadania na liście będą sortowane: najpierw aktywne (które użytkownik może szeregować), a następnie zrealizowane i anulowane (posortowane wg daty).
 - F-08: Ograniczenia modyfikacji: Zadania nie mogą być przenoszone między różnymi rodzicami.
 - F-09: Uprawnienia Asystenta AI (przez API):
   - Autoryzacja za pomocą klucza API.
@@ -125,17 +125,20 @@ Następujące funkcje i elementy nie wchodzą w zakres wersji MVP (Minimum Viabl
 
 - ID: US-010
 - Tytuł: Zmiana kolejności zadań
-- Opis: Jako użytkownik, chcę móc zmieniać kolejność zadań na tym samym poziomie hierarchii, aby priorytetyzować pracę.
+- Opis: Jako użytkownik, chcę móc zmieniać kolejność zadań o statusie "Do zrobienia" na tym samym poziomie hierarchii, aby priorytetyzować pracę.
 - Kryteria akceptacji:
-  - Interfejs umożliwia przeciąganie i upuszczanie zadań w obrębie tej samej listy (tego samego rodzica).
+  - Interfejs umożliwia przeciąganie i upuszczanie tylko zadań aktywnych.
+  - Zadania zrealizowane i anulowane są wyświetlane na końcu listy i nie można zmieniać ich kolejności.
   - Zmiana kolejności jest trwale zapisywana.
 
 - ID: US-011
 - Tytuł: Delegowanie zadania do asystenta AI
-- Opis: Jako użytkownik, chcę móc delegować zadanie do asystenta AI, aby mógł on rozpocząć nad nim pracę.
+- Opis: Jako użytkownik, chcę móc delegować zadanie do asystenta AI za pomocą przełącznika, aby mógł on rozpocząć nad nim pracę.
 - Kryteria akceptacji:
-  - Przy każdym zadaniu, które nie jest jeszcze delegowane, znajduje się opcja (np. checkbox) "Deleguj do AI".
-  - Po delegowaniu, zadanie jest wizualnie oznaczone jako delegowane.
+  - Przy każdym zadaniu, które nie jest jeszcze delegowane, znajduje się przełącznik (toggle).
+  - Przełącznik posiada ikonę człowieka (niezdelegowane) lub robota (zdelegowane).
+  - Po delegowaniu, zadanie jest wizualnie oznaczone jako delegowane (np. kolor zielony).
+  - Jeśli asystent AI podjął zadanie, oznaczenie wizualne zmienia się (np. na kolor czerwony), a możliwość cofnięcia delegacji jest blokowana.
   - Zadanie staje się zablokowane do edycji dla mnie.
 
 - ID: US-012
