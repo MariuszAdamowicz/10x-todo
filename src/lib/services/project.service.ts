@@ -223,3 +223,5 @@ export class ProjectService {
     return updatedProject;
   }
 }
+
+export const projectService = new ProjectService();
