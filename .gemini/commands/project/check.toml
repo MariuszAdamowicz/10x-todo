@@ -1,0 +1,5 @@
+# In: <project>/.gemini/commands/project/check.toml
+# Invoked via: /project:check
+
+description = "Check status of my project"
+prompt = "Please report status of my project with check-mvp tool of 10x-mvp-tracker MCP"

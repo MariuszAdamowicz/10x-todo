@@ -9,5 +9,11 @@
     "fileFiltering": {
       "respectGitIgnore": true
     }
+  },
+  "mcpServers": {
+    "10x-mvp-tracker": {
+      "command": "npx",
+      "args": ["@przeprogramowani/10x-mvp-tracker@1.0.0"]
+    }
   }
 }
