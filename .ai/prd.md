@@ -48,8 +48,9 @@ Następujące funkcje i elementy nie wchodzą w zakres wersji MVP (Minimum Viabl
 - Tytuł: Rejestracja nowego użytkownika
 - Opis: Jako nowy użytkownik, chcę móc założyć konto w aplikacji przy użyciu adresu e-mail i hasła, aby móc tworzyć i zarządzać swoimi projektami.
 - Kryteria akceptacji:
-  - Formularz rejestracji zawiera pola na e-mail i hasło.
-  - System waliduje poprawność formatu adresu e-mail.
+  - Rejestracja odbywa się na dedykowanej stronie.
+  - Formularz rejestracji zawiera pola na e-mail, hasło i potwierdzenie hasła.
+  - System waliduje poprawność formatu adresu e-mail oraz poprawność potwierdzenia hasła.
   - Po pomyślnej rejestracji jestem automatycznie zalogowany i przekierowany do panelu głównego.
   - W przypadku błędu (np. zajęty e-mail) wyświetlany jest czytelny komunikat.
 
@@ -57,9 +58,11 @@ Następujące funkcje i elementy nie wchodzą w zakres wersji MVP (Minimum Viabl
 - Tytuł: Logowanie użytkownika
 - Opis: Jako zarejestrowany użytkownik, chcę móc zalogować się na swoje konto, aby uzyskać dostęp do moich projektów.
 - Kryteria akceptacji:
+  - Logowanie odbywa się na dedykowanej stronie.
   - Formularz logowania zawiera pola na e-mail i hasło.
   - Po poprawnym wprowadzeniu danych jestem zalogowany i przekierowany do panelu głównego.
   - W przypadku błędnych danych wyświetlany jest czytelny komunikat o nieprawidłowym loginie lub haśle.
+  - Nie korzystamy z zewnętrznych serwisów logowania (np. Google, GitHub).
 
 ### Zarządzanie Projektami
 
