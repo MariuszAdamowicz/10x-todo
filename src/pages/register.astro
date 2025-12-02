@@ -1,0 +1,16 @@
+---
+import RegisterForm from "@/components/features/auth/RegisterForm";
+import Layout from "@/layouts/Layout.astro";
+---
+
+<Layout title="Register | 10x To-Do">
+  <div
+    class="relative w-full mx-auto min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-blue-900 p-4 sm:p-8"
+  >
+    <div
+      class="relative w-full max-w-md mx-auto backdrop-blur-xl bg-gradient-to-b from-white/10 to-white/5 rounded-2xl shadow-2xl p-8 text-white border border-white/10"
+    >
+      <RegisterForm client:load />
+    </div>
+  </div>
+</Layout>

@@ -1,10 +1,44 @@
 ---
 import { ThemeToggle } from "@/components/features/theme/ThemeToggle";
+import UserNav from "@/components/layout/UserNav";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+// const { user } = Astro.locals;
+const user = null;
 ---
 
-<header class="bg-background border-b">
-  <div class="container mx-auto flex justify-between items-center p-4">
-    <h1 class="text-xl font-bold">10x To-Do App</h1>
-    <ThemeToggle client:load />
+<header class="bg-background/80 backdrop-blur-sm border-b fixed top-0 left-0 right-0 z-50">
+  <div class="container mx-auto flex justify-between items-center h-16 px-4">
+    <a href="/" class="text-xl font-bold">10x To-Do App</a>
+    <div class="flex items-center gap-4">
+      <ThemeToggle client:load />
+      {
+        user ? (
+          <UserNav client:load />
+        ) : (
+          <div class="flex items-center gap-2">
+            <a
+              href="/login"
+              class={cn(
+                buttonVariants({ variant: "ghost" }),
+                "text-foreground/80 hover:text-foreground",
+              )}
+            >
+              Log In
+            </a>
+            <a
+              href="/register"
+              class={cn(
+                buttonVariants({ variant: "default" }),
+                "bg-blue-500 hover:bg-blue-600 text-white",
+              )}
+            >
+              Register
+            </a>
+          </div>
+        )
+      }
+    </div>
   </div>
 </header>
