@@ -1,13 +1,16 @@
 import type { APIRoute } from "astro";
 import { ReorderTasksDtoSchema } from "@/lib/schemas/task.schemas";
 import { TaskService } from "@/lib/services/task.service";
-import { DEFAULT_USER_ID } from "@/db/supabase.client";
+import { createSupabaseServer } from "@/db/supabase.client";
 import { AuthorizationError, InvalidStateError, TaskNotFoundError } from "@/lib/errors";
 
 export const prerender = false;
 
-export const POST: APIRoute = async ({ request, locals }) => {
-  const { supabase } = locals;
+export const POST: APIRoute = async ({ request, locals, cookies }) => {
+  const { user } = locals;
+  if (!user) {
+    return new Response(JSON.stringify({ message: "Unauthorized" }), { status: 401 });
+  }
 
   try {
     // 1. Parse and validate the request body
@@ -25,13 +28,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     const validatedBody = validation.data;
+    const supabase = createSupabaseServer({ cookies, headers: request.headers });
 
-    // 2. Get user ID (using default for now)
-    const userId = DEFAULT_USER_ID;
-
-    // 3. Call the service to reorder tasks
+    // 2. Call the service to reorder tasks
     const taskService = new TaskService(supabase);
-    await taskService.reorderTasks(userId, validatedBody);
+    await taskService.reorderTasks(user.id, validatedBody);
 
     return new Response(null, { status: 204 });
   } catch (error) {

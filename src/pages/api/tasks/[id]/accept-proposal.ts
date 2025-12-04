@@ -1,16 +1,22 @@
 import type { APIRoute } from "astro";
 import { z } from "zod";
-import { DEFAULT_USER_ID } from "@/db/supabase.client";
+import { createSupabaseServer } from "@/db/supabase.client";
 import { TaskService } from "@/lib/services/task.service";
 import { TaskNotFoundError, AuthorizationError, InvalidStateError } from "@/lib/errors";
+
+export const prerender = false;
 
 const paramsSchema = z.object({
   id: z.string().uuid(),
 });
 
 export const POST: APIRoute = async (context) => {
-  const { params, locals } = context;
-  const supabase = locals.supabase;
+  const { params, locals, cookies, request } = context;
+
+  const { user } = locals;
+  if (!user) {
+    return new Response(JSON.stringify({ message: "Unauthorized" }), { status: 401 });
+  }
 
   const safeParams = paramsSchema.safeParse(params);
 
@@ -25,12 +31,11 @@ export const POST: APIRoute = async (context) => {
   }
 
   const taskId = safeParams.data.id;
-  // Na razie używamy statycznego ID użytkownika, zgodnie z wymaganiami
-  const userId = DEFAULT_USER_ID;
+  const supabase = createSupabaseServer({ cookies, headers: request.headers });
 
   try {
     const taskService = new TaskService(supabase);
-    const updatedTask = await taskService.acceptStatusProposal(taskId, userId);
+    const updatedTask = await taskService.acceptStatusProposal(taskId, user.id);
 
     return new Response(JSON.stringify(updatedTask), {
       status: 200,
@@ -44,7 +49,7 @@ export const POST: APIRoute = async (context) => {
       });
     }
     if (error instanceof AuthorizationError) {
-      return new Response(JSON.stringify({ error: error.message }), {
+      return new Response(JSON.stringify({ message: error.message }), {
         status: 403,
         headers: { "Content-Type": "application/json" },
       });

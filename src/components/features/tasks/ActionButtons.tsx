@@ -27,7 +27,11 @@ export function ActionButtons({ task, onCancel }: ActionButtonsProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
-          <DropdownMenuItem onClick={() => onCancel(task.id)} disabled={isDelegated || !canCancel} className="text-red-500">
+          <DropdownMenuItem
+            onClick={() => onCancel(task.id)}
+            disabled={isDelegated || !canCancel}
+            className="text-red-500"
+          >
             Cancel Task
           </DropdownMenuItem>
         </DropdownMenuContent>

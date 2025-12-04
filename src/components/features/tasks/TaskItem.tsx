@@ -20,14 +20,7 @@ export interface TaskItemProps {
   onRejectProposal: (task: TaskViewModel) => void;
 }
 
-export function TaskItem({
-  task,
-  onUpdate,
-  onNavigate,
-  onCancel,
-  onAcceptProposal,
-  onRejectProposal,
-}: TaskItemProps) {
+export function TaskItem({ task, onUpdate, onNavigate, onCancel, onAcceptProposal, onRejectProposal }: TaskItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(task.title);
 
@@ -79,9 +72,7 @@ export function TaskItem({
   };
 
   const totalSubtasks =
-    (task.active_subtask_count ?? 0) +
-    (task.completed_subtask_count ?? 0) +
-    (task.canceled_subtask_count ?? 0);
+    (task.active_subtask_count ?? 0) + (task.completed_subtask_count ?? 0) + (task.canceled_subtask_count ?? 0);
 
   const canComplete = (task.active_subtask_count ?? 0) === 0;
   const canDelegate = totalSubtasks === 0;

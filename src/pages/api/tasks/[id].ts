@@ -1,7 +1,7 @@
 import type { APIContext } from "astro";
 import { z } from "zod";
 import { TaskService } from "@/lib/services/task.service";
-import { DEFAULT_USER_ID, type SupabaseClient } from "@/db/supabase.client";
+import { createSupabaseServer } from "@/db/supabase.client";
 import { TaskUpdateSchema } from "@/lib/schemas/task.schemas";
 import { AuthorizationError, TaskNotFoundError } from "@/lib/errors";
 
@@ -9,8 +9,12 @@ export const prerender = false;
 
 const taskIdSchema = z.string().uuid();
 
-export async function GET({ params, locals }: APIContext) {
-  const supabase = locals.supabase as SupabaseClient;
+export async function GET({ params, locals, cookies, request }: APIContext) {
+  const { user } = locals;
+  if (!user) {
+    return new Response(JSON.stringify({ message: "Unauthorized" }), { status: 401 });
+  }
+
   const validation = taskIdSchema.safeParse(params.id);
 
   if (!validation.success) {
@@ -24,10 +28,11 @@ export async function GET({ params, locals }: APIContext) {
   }
 
   const taskId = validation.data;
+  const supabase = createSupabaseServer({ cookies, headers: request.headers });
 
   try {
     const taskService = new TaskService(supabase);
-    const task = await taskService.getTaskById({ taskId });
+    const task = await taskService.getTaskById({ taskId, userId: user.id });
 
     return new Response(JSON.stringify(task), {
       status: 200,
@@ -40,6 +45,12 @@ export async function GET({ params, locals }: APIContext) {
         headers: { "Content-Type": "application/json" },
       });
     }
+    if (error instanceof AuthorizationError) {
+      return new Response(JSON.stringify({ message: error.message }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
     console.error("Error fetching task:", error);
     return new Response(JSON.stringify({ message: "Internal Server Error" }), {
       status: 500,
@@ -48,8 +59,11 @@ export async function GET({ params, locals }: APIContext) {
   }
 }
 
-export async function PATCH({ params, request, locals }: APIContext) {
-  const supabase = locals.supabase as SupabaseClient;
+export async function PATCH({ params, request, locals, cookies }: APIContext) {
+  const { user } = locals;
+  if (!user) {
+    return new Response(JSON.stringify({ message: "Unauthorized" }), { status: 401 });
+  }
 
   // 1. Validate Task ID
   const idValidation = taskIdSchema.safeParse(params.id);
@@ -87,9 +101,10 @@ export async function PATCH({ params, request, locals }: APIContext) {
   }
   const updateData = bodyValidation.data;
 
+  const supabase = createSupabaseServer({ cookies, headers: request.headers });
+
   try {
-    // TODO: Replace with actual auth principal from context.locals
-    const auth = { userId: DEFAULT_USER_ID };
+    const auth = { userId: user.id };
     const taskService = new TaskService(supabase);
     const updatedTask = await taskService.updateTask(taskId, updateData, auth);
 

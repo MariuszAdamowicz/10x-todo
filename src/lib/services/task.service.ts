@@ -105,7 +105,13 @@ export class TaskService {
             return match;
           });
           // This mock needs to be updated to include sub-task counts
-          const dataWithCounts = filteredTasks.map(t => ({...t, active_subtask_count: 0, completed_subtask_count: 0, canceled_subtask_count: 0, task_comments: []}))
+          const dataWithCounts = filteredTasks.map((t) => ({
+            ...t,
+            active_subtask_count: 0,
+            completed_subtask_count: 0,
+            canceled_subtask_count: 0,
+            task_comments: [],
+          }));
           resolve({ data: dataWithCounts, count: filteredTasks.length });
         }, 500);
       });
@@ -118,12 +124,12 @@ export class TaskService {
     if (!userId || !projectId) {
       throw new AuthorizationError("User and Project ID are required.");
     }
-    
-    const { data, error } = await this.supabase.rpc('get_tasks_with_subtask_counts', {
+
+    const { data, error } = await this.supabase.rpc("get_tasks_with_subtask_counts", {
       p_project_id: projectId,
       p_user_id: userId,
       p_parent_id: parentId,
-    })
+    });
 
     if (error) {
       console.error("Error fetching tasks with counts:", error);
@@ -131,9 +137,9 @@ export class TaskService {
     }
 
     // The RPC returns comments as a JSONB object. We need to handle the case where it's null.
-    const tasks = data.map(t => ({
+    const tasks = data.map((t) => ({
       ...t,
-      task_comments: t.task_comments ?? []
+      task_comments: t.task_comments ?? [],
     }));
 
     return { data: tasks || [], count: tasks.length || 0 };
@@ -224,8 +230,12 @@ export class TaskService {
 
     return newTask;
   }
-  public async getTaskById({ taskId }: { taskId: string }): Promise<Task> {
-    const { data, error } = await this.supabase.from("tasks").select("*").eq("id", taskId).single();
+  public async getTaskById({ taskId, userId }: { taskId: string; userId: string }): Promise<Task> {
+    const { data, error } = await this.supabase
+      .from("tasks")
+      .select("*, project:projects(user_id)")
+      .eq("id", taskId)
+      .single();
 
     if (error || !data) {
       if (error && error.code !== "PGRST116") {
@@ -233,8 +243,15 @@ export class TaskService {
       }
       throw new TaskNotFoundError();
     }
+    
+    if (data.project?.user_id !== userId) {
+      throw new AuthorizationError();
+    }
 
-    return data;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { project, ...taskData } = data;
+
+    return taskData as Task;
   }
 
   public async updateTask(

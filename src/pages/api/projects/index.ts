@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import { ProjectService } from "@/lib/services/project.service";
-import { DEFAULT_USER_ID } from "@/db/supabase.client";
+import { createSupabaseServer } from "@/db/supabase.client";
 import { z } from "zod";
 import type { ProjectCreateCommand } from "@/types";
 
@@ -11,9 +11,8 @@ const projectCreateSchema = z.object({
   description: z.string().nullable(),
 });
 
-export const GET: APIRoute = async ({ locals }) => {
-  const { supabase } = locals;
-  const userId = locals.user?.id || DEFAULT_USER_ID;
+export const GET: APIRoute = async ({ locals, cookies, request }) => {
+  const userId = locals.user?.id;
 
   if (!userId) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -21,6 +20,8 @@ export const GET: APIRoute = async ({ locals }) => {
       headers: { "Content-Type": "application/json" },
     });
   }
+
+  const supabase = createSupabaseServer({ cookies, headers: request.headers });
 
   try {
     const projectService = new ProjectService();
@@ -38,9 +39,8 @@ export const GET: APIRoute = async ({ locals }) => {
   }
 };
 
-export const POST: APIRoute = async ({ request, locals }) => {
-  const { supabase } = locals;
-  const userId = locals.user?.id || DEFAULT_USER_ID;
+export const POST: APIRoute = async ({ request, locals, cookies }) => {
+  const userId = locals.user?.id;
 
   if (!userId) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -59,6 +59,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       headers: { "Content-Type": "application/json" },
     });
   }
+
+  const supabase = createSupabaseServer({ cookies, headers: request.headers });
 
   try {
     const projectService = new ProjectService();

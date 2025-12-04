@@ -68,7 +68,7 @@ export default function ProjectSettingsView({ projectId }: ProjectSettingsViewPr
   return (
     <>
       <Breadcrumbs projectId={projectId} projectName={project.name} currentPage="Settings" />
-      <h1 class="text-3xl font-bold my-6">Project Settings</h1>
+      <h1 className="text-3xl font-bold my-6">Project Settings</h1>
       <div className="space-y-8">
         <ProjectSettingsForm
           project={projectViewModel}
@@ -84,11 +84,7 @@ export default function ProjectSettingsView({ projectId }: ProjectSettingsViewPr
           onRegenerate={handleRegenerateApiKey}
           isRegenerating={isRegenerating}
         />
-        <DangerZone
-          projectName={project.name}
-          onDelete={handleDeleteProject}
-          isDeleting={isDeleting}
-        />
+        <DangerZone projectName={project.name} onDelete={handleDeleteProject} isDeleting={isDeleting} />
       </div>
     </>
   );

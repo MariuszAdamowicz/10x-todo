@@ -16,12 +16,7 @@ export interface ProjectAndTasksViewProps {
   parentTask: Task | null;
 }
 
-export function ProjectAndTasksView({
-  project,
-  initialTasks,
-  breadcrumbs,
-  parentTask,
-}: ProjectAndTasksViewProps) {
+export function ProjectAndTasksView({ project, initialTasks, breadcrumbs, parentTask }: ProjectAndTasksViewProps) {
   const [currentParentTask, setCurrentParentTask] = useState(parentTask);
   const parentId = currentParentTask?.id ?? null;
 

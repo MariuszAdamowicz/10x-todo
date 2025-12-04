@@ -1,7 +1,7 @@
 import type { APIContext } from "astro";
 import { z } from "zod";
 
-import { DEFAULT_USER_ID } from "@/db/supabase.client";
+import { createSupabaseServer } from "@/db/supabase.client";
 import { AuthorizationError, ProjectNotFoundError } from "@/lib/errors";
 import { ProjectService } from "@/lib/services/project.service";
 import type { ProjectUpdateCommand } from "@/types";
@@ -16,51 +16,16 @@ const projectUpdateSchema = z.object({
 });
 
 /**
- * @swagger
- * /api/projects/{id}:
- *   get:
- *     summary: Get project details by ID
- *     description: Retrieves detailed information about a single project based on its unique ID. Access is restricted to the project owner.
- *     tags:
- *       - Projects
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: The unique identifier of the project.
- *     responses:
- *       '200':
- *         description: Successfully retrieved project details.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ProjectGetDetailsDto'
- *       '400':
- *         description: Bad Request - The provided ID is not a valid UUID.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: Invalid project ID format.
- *       '401':
- *         description: Unauthorized - User is not authenticated.
- *       '404':
- *         description: Not Found - The project with the specified ID does not exist or the user does not have permission to access it.
- *       '500':
- *         description: Internal Server Error - An unexpected error occurred on the server.
+ * @description
+ * Get project details by ID
  */
 export async function GET(context: APIContext): Promise<Response> {
-  const { id } = context.params;
-  const { supabase } = context.locals;
+  const { user } = context.locals;
+  if (!user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  }
 
-  const validationResult = idSchema.safeParse(id);
-
+  const validationResult = idSchema.safeParse(context.params.id);
   if (!validationResult.success) {
     return new Response(JSON.stringify({ error: "Invalid project ID format." }), {
       status: 400,
@@ -69,10 +34,11 @@ export async function GET(context: APIContext): Promise<Response> {
   }
 
   const validatedId = validationResult.data;
+  const supabase = createSupabaseServer({ cookies: context.cookies, headers: context.request.headers });
 
   try {
     const projectService = new ProjectService();
-    const project = await projectService.getProjectById(supabase, validatedId, DEFAULT_USER_ID);
+    const project = await projectService.getProjectById(supabase, validatedId, user.id);
     return new Response(JSON.stringify(project), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -93,49 +59,17 @@ export async function GET(context: APIContext): Promise<Response> {
 }
 
 /**
- * @swagger
- * /api/projects/{id}:
- *   put:
- *     summary: Update a project
- *     description: Updates an existing project's name and description. Access is restricted to the project owner.
- *     tags:
- *       - Projects
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: The unique identifier of the project to update.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/ProjectUpdateCommand'
- *     responses:
- *       '200':
- *         description: Project updated successfully.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ProjectUpdateResultDto'
- *       '400':
- *         description: Bad Request - Invalid ID format or invalid request body.
- *       '401':
- *         description: Unauthorized - User is not authenticated.
- *       '404':
- *         description: Not Found - The project with the specified ID does not exist or the user does not have permission to access it.
- *       '500':
- *         description: Internal Server Error - An unexpected error occurred on the server.
+ * @description
+ * Update a project
  */
 export async function PUT(context: APIContext): Promise<Response> {
-  const { id } = context.params;
-  const { supabase } = context.locals;
+  const { user } = context.locals;
+  if (!user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  }
 
   // 1. Validate ID from path
-  const idValidationResult = idSchema.safeParse(id);
+  const idValidationResult = idSchema.safeParse(context.params.id);
   if (!idValidationResult.success) {
     return new Response(JSON.stringify({ error: idValidationResult.error.format() }), {
       status: 400,
@@ -148,14 +82,7 @@ export async function PUT(context: APIContext): Promise<Response> {
   let projectData: ProjectUpdateCommand;
   try {
     const body = await context.request.json();
-    const bodyValidationResult = projectUpdateSchema.safeParse(body);
-    if (!bodyValidationResult.success) {
-      return new Response(JSON.stringify({ error: bodyValidationResult.error.format() }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-    projectData = bodyValidationResult.data;
+    projectData = projectUpdateSchema.parse(body);
   } catch (error) {
     return new Response(JSON.stringify({ error: "Bad Request: Malformed JSON." }), {
       status: 400,
@@ -164,9 +91,10 @@ export async function PUT(context: APIContext): Promise<Response> {
   }
 
   // 3. Call the service to update the project
+  const supabase = createSupabaseServer({ cookies: context.cookies, headers: context.request.headers });
   try {
     const projectService = new ProjectService();
-    const updatedProject = await projectService.updateProject(supabase, validatedId, DEFAULT_USER_ID, projectData);
+    const updatedProject = await projectService.updateProject(supabase, validatedId, user.id, projectData);
     return new Response(JSON.stringify(updatedProject), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -193,38 +121,16 @@ export async function PUT(context: APIContext): Promise<Response> {
 }
 
 /**
- * @swagger
- * /api/projects/{id}:
- *   delete:
- *     summary: Delete a project
- *     description: Deletes a project and all its associated tasks. This operation is irreversible. Access is restricted to the project owner.
- *     tags:
- *       - Projects
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: The unique identifier of the project to delete.
- *     responses:
- *       '204':
- *         description: No Content - The project was successfully deleted.
- *       '400':
- *         description: Bad Request - The provided ID is not a valid UUID.
- *       '401':
- *         description: Unauthorized - User is not authenticated.
- *       '404':
- *         description: Not Found - The project with the specified ID does not exist or the user does not have permission to delete it.
- *       '500':
- *         description: Internal Server Error - An unexpected error occurred on the server.
+ * @description
+ * Delete a project
  */
 export async function DELETE(context: APIContext): Promise<Response> {
-  const { id } = context.params;
-  const { supabase } = context.locals;
+  const { user } = context.locals;
+  if (!user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  }
 
-  const validationResult = idSchema.safeParse(id);
+  const validationResult = idSchema.safeParse(context.params.id);
 
   if (!validationResult.success) {
     return new Response(JSON.stringify({ error: "Invalid project ID format." }), {
@@ -234,10 +140,11 @@ export async function DELETE(context: APIContext): Promise<Response> {
   }
 
   const validatedId = validationResult.data;
+  const supabase = createSupabaseServer({ cookies: context.cookies, headers: context.request.headers });
 
   try {
     const projectService = new ProjectService();
-    await projectService.deleteProject(supabase, validatedId, DEFAULT_USER_ID);
+    await projectService.deleteProject(supabase, validatedId, user.id);
     return new Response(null, {
       status: 204, // No Content
     });

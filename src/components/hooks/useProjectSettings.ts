@@ -116,8 +116,7 @@ export function useProjectSettings({ projectId, onDeleteSuccess }: UseProjectSet
 
   return {
     project: project
-      ?
-          {
+      ? {
           ...project,
           isApiKeyVisible,
         }

@@ -4,8 +4,7 @@ import UserNav from "@/components/layout/UserNav";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-// const { user } = Astro.locals;
-const user = null;
+const { user } = Astro.locals;
 ---
 
 <header class="bg-background/80 backdrop-blur-sm border-b fixed top-0 left-0 right-0 z-50">
@@ -15,24 +14,18 @@ const user = null;
       <ThemeToggle client:load />
       {
         user ? (
-          <UserNav client:load />
+          <UserNav client:load user={user} />
         ) : (
           <div class="flex items-center gap-2">
             <a
               href="/login"
-              class={cn(
-                buttonVariants({ variant: "ghost" }),
-                "text-foreground/80 hover:text-foreground",
-              )}
+              class={cn(buttonVariants({ variant: "ghost" }), "text-foreground/80 hover:text-foreground")}
             >
               Log In
             </a>
             <a
               href="/register"
-              class={cn(
-                buttonVariants({ variant: "default" }),
-                "bg-blue-500 hover:bg-blue-600 text-white",
-              )}
+              class={cn(buttonVariants({ variant: "default" }), "bg-blue-500 hover:bg-blue-600 text-white")}
             >
               Register
             </a>

@@ -1,7 +1,7 @@
 import type { APIContext } from "astro";
 import { z } from "zod";
 import { projectService } from "@/lib/services/project.service";
-import { DEFAULT_USER_ID } from "@/db/supabase.client";
+import { createSupabaseServer } from "@/db/supabase.client";
 import { AuthorizationError, ProjectNotFoundError } from "@/lib/errors";
 
 export const prerender = false;
@@ -14,9 +14,11 @@ const projectIdSchema = z.string().uuid({
  * @description
  * Regeneruje klucz API dla projektu
  */
-export async function POST({ params, locals }: APIContext) {
-  const supabase = locals.supabase;
-  const userId = DEFAULT_USER_ID;
+export async function POST({ params, locals, cookies, request }: APIContext) {
+  const { user } = locals;
+  if (!user) {
+    return new Response(JSON.stringify({ message: "Unauthorized" }), { status: 401 });
+  }
 
   const result = projectIdSchema.safeParse(params.id);
 
@@ -30,9 +32,10 @@ export async function POST({ params, locals }: APIContext) {
   }
 
   const projectId = result.data;
+  const supabase = createSupabaseServer({ cookies, headers: request.headers });
 
   try {
-    const data = await projectService.regenerateApiKey(projectId, userId, supabase);
+    const data = await projectService.regenerateApiKey(projectId, user.id, supabase);
     return new Response(JSON.stringify(data), { status: 200 });
   } catch (error) {
     if (error instanceof ProjectNotFoundError) {

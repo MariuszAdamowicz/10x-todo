@@ -4,16 +4,24 @@ import Layout from "@/layouts/Layout.astro";
 import { ProjectService } from "@/lib/services/project.service";
 import { TaskService } from "@/lib/services/task.service";
 import type { IBreadcrumb, Project, Task } from "@/types";
+import { createSupabaseServer } from "@/db/supabase.client";
 
 export const prerender = false;
 
 const { id: projectId } = Astro.params;
-const { user, supabase } = Astro.locals;
+const { user } = Astro.locals;
 
-if (!projectId || !user) {
+// This page requires a logged-in user
+if (!user) {
+  return Astro.redirect("/login");
+}
+
+// This page requires a project ID
+if (!projectId) {
   return Astro.redirect("/projects");
 }
 
+const supabase = createSupabaseServer({ cookies: Astro.cookies, headers: Astro.request.headers });
 const projectService = new ProjectService();
 const taskService = new TaskService(supabase);
 
@@ -38,12 +46,15 @@ try {
   breadcrumbs = breadcrumbsResult;
 } catch (e) {
   error = e instanceof Error ? e : new Error("An unknown error occurred");
-  console.error(e);
+  // In dev, show the full error. In prod, you might want a generic message.
+  if (import.meta.env.DEV) {
+    console.error(e);
+  }
 }
 
 // Redirect if the project is not found or there was a critical error
 if (!project) {
-  // TODO: Add a user-facing error message to the page it redirects to
+  // TODO: Add a user-facing error message to the page it redirects to (e.g., via a query param)
   return Astro.redirect("/projects");
 }
 ---
@@ -57,5 +68,5 @@ if (!project) {
     client:load
   />
   <!-- TODO: Add a proper error display component -->
-  {error && <p class="text-red-500 p-4">Error loading project data: {error.message}</p>}
+  {error && <p class="text-red-500 p-4 text-center">Error loading project data: {error.message}</p>}
 </Layout>

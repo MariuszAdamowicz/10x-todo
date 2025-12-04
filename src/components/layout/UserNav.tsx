@@ -1,4 +1,4 @@
-
+import type { User } from "astro:middleware";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,40 +9,45 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 
-// This is a placeholder for the user's avatar
-const UserAvatar = () => (
-  <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
-    U
+interface UserNavProps {
+  user: User;
+}
+
+const UserAvatar = ({ user }: UserNavProps) => (
+  <div className="size-full rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
+    {user.email?.[0]?.toUpperCase() ?? "U"}
   </div>
 );
 
-export default function UserNav() {
-  const handleLogout = () => {
-    // Logic to call POST /api/auth/logout will be added later
-    console.log("Logging out...");
-    // window.location.href = "/";
+export default function UserNav({ user }: UserNavProps) {
+  const handleLogout = async () => {
+    const response = await fetch("/api/auth/logout", {
+      method: "POST",
+    });
+    if (response.ok) {
+      window.location.href = "/";
+    } else {
+      // You might want to show an error to the user here
+      console.error("Logout failed");
+    }
   };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-          <UserAvatar />
+        <Button variant="ghost" size="icon" className="relative rounded-full">
+          <UserAvatar user={user} />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">User</p>
-            <p className="text-xs leading-none text-muted-foreground">
-              user@example.com
-            </p>
+            <p className="text-sm font-medium leading-none">{user.email}</p>
+            <p className="text-xs leading-none text-muted-foreground">Logged In</p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout}>
-          Log out
-        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleLogout}>Log out</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
