@@ -24,8 +24,8 @@ export const GET: APIRoute = async ({ locals, cookies, request }) => {
   const supabase = createSupabaseServer({ cookies, headers: request.headers });
 
   try {
-    const projectService = new ProjectService();
-    const projects = await projectService.getProjects(supabase, userId);
+    const projectService = new ProjectService(supabase);
+    const projects = await projectService.getProjects(userId);
     return new Response(JSON.stringify(projects), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -63,8 +63,8 @@ export const POST: APIRoute = async ({ request, locals, cookies }) => {
   const supabase = createSupabaseServer({ cookies, headers: request.headers });
 
   try {
-    const projectService = new ProjectService();
-    const newProject = await projectService.createProject(supabase, userId, projectData);
+    const projectService = new ProjectService(supabase);
+    const newProject = await projectService.createProject(userId, projectData);
     return new Response(JSON.stringify(newProject), {
       status: 201,
       headers: { "Content-Type": "application/json" },

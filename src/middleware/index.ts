@@ -7,11 +7,12 @@ const PUBLIC_PATHS = ["/login", "/register", "/api/auth/login", "/api/auth/regis
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const { url, request, redirect, cookies } = context;
+  const supabase = createSupabaseServer({ cookies, headers: request.headers });
+  context.locals.supabase = supabase;
 
   // API key authentication takes precedence for API routes.
   const apiKey = request.headers.get("X-API-Key");
   if (url.pathname.startsWith("/api/") && apiKey) {
-    const supabase = createSupabaseServer({ cookies, headers: request.headers });
     const { data: project, error } = await supabase
       .from("projects")
       .select("id, user_id")
@@ -29,7 +30,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   // Session-based authentication for all other routes.
-  const supabase = createSupabaseServer({ cookies, headers: request.headers });
   const {
     data: { user },
   } = await supabase.auth.getUser();

@@ -37,8 +37,8 @@ export async function GET(context: APIContext): Promise<Response> {
   const supabase = createSupabaseServer({ cookies: context.cookies, headers: context.request.headers });
 
   try {
-    const projectService = new ProjectService();
-    const project = await projectService.getProjectById(supabase, validatedId, user.id);
+    const projectService = new ProjectService(supabase);
+    const project = await projectService.getProjectById(validatedId, user.id);
     return new Response(JSON.stringify(project), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -93,8 +93,8 @@ export async function PUT(context: APIContext): Promise<Response> {
   // 3. Call the service to update the project
   const supabase = createSupabaseServer({ cookies: context.cookies, headers: context.request.headers });
   try {
-    const projectService = new ProjectService();
-    const updatedProject = await projectService.updateProject(supabase, validatedId, user.id, projectData);
+    const projectService = new ProjectService(supabase);
+    const updatedProject = await projectService.updateProject(validatedId, user.id, projectData);
     return new Response(JSON.stringify(updatedProject), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -143,8 +143,8 @@ export async function DELETE(context: APIContext): Promise<Response> {
   const supabase = createSupabaseServer({ cookies: context.cookies, headers: context.request.headers });
 
   try {
-    const projectService = new ProjectService();
-    await projectService.deleteProject(supabase, validatedId, user.id);
+    const projectService = new ProjectService(supabase);
+    await projectService.deleteProject(validatedId, user.id);
     return new Response(null, {
       status: 204, // No Content
     });

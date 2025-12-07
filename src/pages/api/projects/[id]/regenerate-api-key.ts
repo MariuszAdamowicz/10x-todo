@@ -1,6 +1,6 @@
 import type { APIContext } from "astro";
 import { z } from "zod";
-import { projectService } from "@/lib/services/project.service";
+import { ProjectService } from "@/lib/services/project.service";
 import { createSupabaseServer } from "@/db/supabase.client";
 import { AuthorizationError, ProjectNotFoundError } from "@/lib/errors";
 
@@ -35,7 +35,8 @@ export async function POST({ params, locals, cookies, request }: APIContext) {
   const supabase = createSupabaseServer({ cookies, headers: request.headers });
 
   try {
-    const data = await projectService.regenerateApiKey(projectId, user.id, supabase);
+    const projectService = new ProjectService(supabase);
+    const data = await projectService.regenerateApiKey(projectId, user.id);
     return new Response(JSON.stringify(data), { status: 200 });
   } catch (error) {
     if (error instanceof ProjectNotFoundError) {

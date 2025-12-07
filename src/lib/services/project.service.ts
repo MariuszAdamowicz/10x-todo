@@ -20,16 +20,20 @@ const MOCK_PROJECT_DETAILS: ProjectGetDetailsDto = {
 const USE_MOCK_SERVICES = import.meta.env.PUBLIC_MOCK_SERVICES === "true";
 
 export class ProjectService {
+  private supabase: SupabaseClient;
+
+  constructor(supabase: SupabaseClient) {
+    this.supabase = supabase;
+  }
   /**
    * Fetches a list of projects for a specific user.
    *
-   * @param supabase - The Supabase client instance.
    * @param userId - The ID of the user whose projects are to be fetched.
    * @returns A promise that resolves to an array of projects.
    * @throws An error if the database query fails.
    */
-  public async getProjects(supabase: SupabaseClient, userId: string): Promise<ProjectGetDto[]> {
-    const { data: projects, error } = await supabase
+  public async getProjects(userId: string): Promise<ProjectGetDto[]> {
+    const { data: projects, error } = await this.supabase
       .from("projects")
       .select("id, name, description, created_at")
       .eq("user_id", userId)
@@ -47,13 +51,12 @@ export class ProjectService {
   /**
    * Fetches a single project by its ID for a specific user.
    *
-   * @param supabase The Supabase client instance.
    * @param id The ID of the project to fetch.
    * @param userId The ID of the user.
    * @returns A promise that resolves to the project details.
    * @throws {ProjectNotFoundError} If the project is not found.
    */
-  public async getProjectById(supabase: SupabaseClient, id: string, userId: string): Promise<ProjectGetDetailsDto> {
+  public async getProjectById(id: string, userId: string): Promise<ProjectGetDetailsDto> {
     if (USE_MOCK_SERVICES) {
       console.log("Using mock ProjectService.getProjectById");
       console.log("Mock ID:", id, "Mock User ID:", userId);
@@ -64,7 +67,7 @@ export class ProjectService {
       });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .from("projects")
       .select("id, name, description, api_key, created_at")
       .eq("id", id)
@@ -84,18 +87,16 @@ export class ProjectService {
   /**
    * Creates a new project for a specific user.
    *
-   * @param supabase The Supabase client instance.
    * @param userId The ID of the user creating the project.
    * @param projectData The data for the new project.
    * @returns A promise that resolves to the newly created project.
    * @throws An error if the database query fails.
    */
   public async createProject(
-    supabase: SupabaseClient,
     userId: string,
     projectData: ProjectCreateCommand
   ): Promise<ProjectCreateResultDto> {
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .from("projects")
       .insert({
         user_id: userId,
@@ -116,7 +117,6 @@ export class ProjectService {
   /**
    * Updates an existing project for a specific user.
    *
-   * @param supabase The Supabase client instance.
    * @param id The ID of the project to update.
    * @param userId The ID of the user updating the project.
    * @param projectData The new data for the project.
@@ -124,12 +124,11 @@ export class ProjectService {
    * @throws {ProjectNotFoundError} If the project is not found.
    */
   public async updateProject(
-    supabase: SupabaseClient,
     id: string,
     userId: string,
     projectData: ProjectUpdateCommand
   ): Promise<ProjectUpdateResultDto> {
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .from("projects")
       .update({
         name: projectData.name,
@@ -153,14 +152,13 @@ export class ProjectService {
   /**
    * Deletes a project for a specific user.
    *
-   * @param supabase The Supabase client instance.
    * @param id The ID of the project to delete.
    * @param userId The ID of the user deleting the project.
    * @returns A promise that resolves when the project is deleted.
    * @throws {ProjectNotFoundError} If the project is not found.
    */
-  public async deleteProject(supabase: SupabaseClient, id: string, userId: string): Promise<void> {
-    const { error, count } = await supabase
+  public async deleteProject(id: string, userId: string): Promise<void> {
+    const { error, count } = await this.supabase
       .from("projects")
       .delete({ count: "exact" })
       .eq("id", id)
@@ -181,7 +179,6 @@ export class ProjectService {
    *
    * @param projectId The ID of the project.
    * @param userId The ID of the user.
-   * @param supabase The Supabase client instance.
    * @returns A promise that resolves to an object containing the new API key.
    * @throws {ProjectNotFoundError} If the project is not found.
    * @throws {AuthorizationError} If the user is not the owner of the project.
@@ -189,10 +186,9 @@ export class ProjectService {
   public async regenerateApiKey(
     projectId: string,
     userId: string,
-    supabase: SupabaseClient
   ): Promise<{ api_key: string }> {
     // First, verify the user owns the project
-    const { data: project, error: fetchError } = await supabase
+    const { data: project, error: fetchError } = await this.supabase
       .from("projects")
       .select("id, user_id")
       .eq("id", projectId)
@@ -207,7 +203,7 @@ export class ProjectService {
     }
 
     // Generate a new API key and update the project
-    const { data: updatedProject, error: updateError } = await supabase
+    const { data: updatedProject, error: updateError } = await this.supabase
       .from("projects")
       .update({ api_key: crypto.randomUUID() })
       .eq("id", projectId)
@@ -223,5 +219,3 @@ export class ProjectService {
     return updatedProject;
   }
 }
-
-export const projectService = new ProjectService();

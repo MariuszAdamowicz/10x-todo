@@ -15,7 +15,7 @@ if (!projectId || !taskId || !user) {
   return Astro.redirect("/projects");
 }
 
-const projectService = new ProjectService();
+const projectService = new ProjectService(supabase);
 const taskService = new TaskService(supabase);
 
 let project: Project | null = null;
@@ -28,7 +28,7 @@ try {
   // Fetch project details, the parent task, the tasks for the current view (sub-tasks),
   // and the breadcrumb trail all at once.
   const [projectResult, parentTaskResult, tasksResult, breadcrumbsResult] = await Promise.all([
-    projectService.getProjectById(supabase, projectId, user.id),
+    projectService.getProjectById(projectId, user.id),
     taskService.getTaskById({ taskId, userId: user.id }),
     taskService.getTasks({
       filters: { projectId, parentId: taskId },

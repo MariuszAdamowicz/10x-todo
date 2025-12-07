@@ -22,7 +22,7 @@ if (!projectId) {
 }
 
 const supabase = createSupabaseServer({ cookies: Astro.cookies, headers: Astro.request.headers });
-const projectService = new ProjectService();
+const projectService = new ProjectService(supabase);
 const taskService = new TaskService(supabase);
 
 let project: Project | null = null;
@@ -32,7 +32,7 @@ let error: Error | null = null;
 
 try {
   const [projectResult, tasksResult, breadcrumbsResult] = await Promise.all([
-    projectService.getProjectById(supabase, projectId, user.id),
+    projectService.getProjectById(projectId, user.id),
     taskService.getTasks({
       filters: { projectId: projectId, parentId: null },
       pagination: { page: 1, limit: 100 }, // TODO: Implement real pagination
