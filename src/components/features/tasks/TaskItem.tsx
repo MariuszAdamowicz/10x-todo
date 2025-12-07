@@ -75,14 +75,14 @@ export function TaskItem({ task, onUpdate, onNavigate, onCancel, onAcceptProposa
     (task.active_subtask_count ?? 0) + (task.completed_subtask_count ?? 0) + (task.canceled_subtask_count ?? 0);
 
   const canComplete = (task.active_subtask_count ?? 0) === 0;
-  const canDelegate = totalSubtasks === 0;
 
   const isChecked = task.status_id === 2;
   const isCanceled = task.status_id === 3;
-  const isLockedByProposal = task.is_delegated && isPendingUserAction;
+  const isTaskFinished = isChecked || isCanceled;
+  const isDelegationLocked = task.delegation_locked_at != null;
 
   const delegateToggleColor = task.is_delegated
-    ? isLockedByProposal
+    ? isDelegationLocked || isPendingUserAction
       ? "bg-red-200 hover:bg-red-300"
       : "bg-green-200 hover:bg-green-300"
     : "";
@@ -156,7 +156,7 @@ export function TaskItem({ task, onUpdate, onNavigate, onCancel, onAcceptProposa
             pressed={task.is_delegated}
             onPressedChange={(isPressed) => onUpdate(task.id, { is_delegated: isPressed })}
             className={delegateToggleColor}
-            disabled={task.isMutating || isLockedByProposal || !canDelegate}
+            disabled={task.isMutating || isDelegationLocked || isTaskFinished}
           >
             {task.is_delegated ? <Bot className="h-5 w-5" /> : <User className="h-5 w-5" />}
           </Toggle>

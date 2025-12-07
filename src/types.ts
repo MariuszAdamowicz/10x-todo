@@ -13,6 +13,7 @@ type BaseTask = Tables<"tasks">;
 
 /** Represents a task with added subtask counts. */
 export interface Task extends BaseTask {
+  delegation_locked_at?: string | null;
   active_subtask_count: number;
   completed_subtask_count: number;
   canceled_subtask_count: number;

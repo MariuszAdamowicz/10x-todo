@@ -146,15 +146,46 @@ export class TaskService {
   }
 
   public async createTask(command: TaskCreateCommand, auth: { userId?: string; projectId?: string }): Promise<Task> {
-    // 1. Determine Project ID and check for auth
     const projectId = auth.userId ? command.project_id : auth.projectId;
     const createdByAi = !!auth.projectId;
 
     if (!projectId) {
       throw new Error("Project ID is required to create a task.");
     }
+    // AI-specific creation path using RPC
+    if (createdByAi) {
+      if (!command.parent_id) {
+        throw new AuthorizationError("AI can only create sub-tasks and must provide a parent_id.");
+      }
 
-    // 2. Verify project exists and user has access
+      const { data: newTask, error: rpcError } = await this.supabase
+        .rpc("create_ai_subtask_and_lock_parent", {
+          p_project_id: projectId,
+          p_parent_id: command.parent_id,
+          p_title: command.title,
+          p_description: command.description,
+        })
+        .select()
+        .single();
+
+      if (rpcError) {
+        console.error("RPC error creating AI sub-task:", rpcError);
+        // Provide more specific error messages based on the exception text from the RPC
+        if (rpcError.message.includes("Parent task not found")) {
+          throw new TaskNotFoundError("Parent task not found.");
+        }
+        if (rpcError.message.includes("AI can only create sub-tasks for delegated tasks")) {
+          throw new AuthorizationError("AI can only create sub-tasks for delegated tasks.");
+        }
+        throw new Error("Failed to create AI sub-task.");
+      }
+      if (!newTask) {
+        throw new Error("Failed to create AI sub-task for an unknown reason.");
+      }
+      return newTask;
+    }
+
+    // User-specific creation path
     const { data: project, error: projectError } = await this.supabase
       .from("projects")
       .select("id")
@@ -165,63 +196,38 @@ export class TaskService {
       throw new ProjectNotFoundError("Project not found or user does not have access.");
     }
 
-    // 3. Validate parent_id if provided
     if (command.parent_id) {
       const { data: parentTask, error: parentError } = await this.supabase
         .from("tasks")
-        .select("id, project_id, is_delegated")
+        .select("id, project_id")
         .eq("id", command.parent_id)
         .single();
-
       if (parentError || !parentTask) {
         throw new TaskNotFoundError("Parent task not found.");
       }
-
       if (parentTask.project_id !== projectId) {
         throw new AuthorizationError("Parent task does not belong to the specified project.");
       }
-
-      // AI-specific rules
-      if (createdByAi && !parentTask.is_delegated) {
-        throw new AuthorizationError("AI can only create sub-tasks for delegated tasks.");
-      }
     }
 
-    // 4. Calculate new position
     const positionQuery = this.supabase.from("tasks").select("position").eq("project_id", projectId);
-
     if (command.parent_id) {
       positionQuery.eq("parent_id", command.parent_id);
     } else {
       positionQuery.is("parent_id", null);
     }
-
     const { data: lastTask, error: positionError } = await positionQuery
       .order("position", { ascending: false })
       .limit(1)
       .single();
 
     if (positionError && positionError.code !== "PGRST116") {
-      // PGRST116: 'exact-single' - no rows found, which is fine.
       throw new Error("Could not determine task position.");
     }
 
     const newPosition = (lastTask?.position ?? 0) + 1;
-
-    // 5. Insert new task
-    const newTaskData = {
-      ...command,
-      project_id: projectId,
-      position: newPosition,
-      created_by_ai: createdByAi,
-      status_id: 1, // Default to 'To Do'
-    };
-
-    const { data: newTask, error: insertError } = await this.supabase
-      .from("tasks")
-      .insert(newTaskData)
-      .select()
-      .single();
+    const newTaskData = { ...command, project_id: projectId, position: newPosition, created_by_ai: false, status_id: 1 };
+    const { data: newTask, error: insertError } = await this.supabase.from("tasks").insert(newTaskData).select().single();
 
     if (insertError || !newTask) {
       console.error("Supabase insert error:", insertError);

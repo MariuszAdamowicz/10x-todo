@@ -76,7 +76,7 @@ export function ProjectAndTasksView({ project, initialTasks, breadcrumbs, parent
         <TaskDetailHeader parentTask={currentParentTask} tasks={tasks} onUpdateTask={handleUpdateTask} />
       )}
 
-      <TaskListHeader onAddTask={addTask} isLoading={isLoading} />
+      <TaskListHeader onAddTask={addTask} isLoading={isLoading} isReadOnly={currentParentTask?.is_delegated} />
       <TaskList
         projectId={project.id}
         tasks={tasks}

@@ -44,14 +44,11 @@ export const TaskDetailHeader = ({ parentTask, tasks, onUpdateTask }: TaskDetail
     onUpdateTask(parentTask.id, { is_delegated: isPressed });
   };
 
-  const hasAiSubtasks = useMemo(() => {
-    return tasks.some((task) => task.created_by_ai);
-  }, [tasks]);
-
-  const canDelegate = tasks.length === 0;
+  const isDelegationLocked = parentTask.delegation_locked_at != null;
+  const isTaskFinished = parentTask.status_id === 2 || parentTask.status_id === 3;
 
   const delegateToggleColor = parentTask.is_delegated
-    ? hasAiSubtasks
+    ? isDelegationLocked
       ? "bg-red-200 hover:bg-red-300"
       : "bg-green-200 hover:bg-green-300"
     : "";
@@ -79,7 +76,7 @@ export const TaskDetailHeader = ({ parentTask, tasks, onUpdateTask }: TaskDetail
           pressed={parentTask.is_delegated}
           onPressedChange={handleToggleDelegation}
           className={delegateToggleColor}
-          disabled={(parentTask.is_delegated && hasAiSubtasks) || !canDelegate}
+          disabled={isDelegationLocked || isTaskFinished}
         >
           {parentTask.is_delegated ? <Bot className="h-5 w-5" /> : <User className="h-5 w-5" />}
         </Toggle>
