@@ -288,6 +288,9 @@ export class TaskService {
       if (existingTask.projects?.user_id !== auth.userId) {
         throw new AuthorizationError("User does not have access to this task.");
       }
+      if (existingTask.created_by_ai) {
+        throw new AuthorizationError("Users cannot modify tasks created by the AI.");
+      }
     } else if (auth.aiProjectId) {
       // AI agent updating a task
       if (existingTask.project_id !== auth.aiProjectId) {

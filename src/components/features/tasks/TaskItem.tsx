@@ -23,12 +23,12 @@ export interface TaskItemProps {
 export function TaskItem({ task, onUpdate, onNavigate, onCancel, onAcceptProposal, onRejectProposal }: TaskItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(task.title);
-
   const { isPendingUserAction } = task;
+  const isAiTask = task.created_by_ai;
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
-    disabled: isPendingUserAction || isEditing || task.status_id !== 1,
+    disabled: isAiTask || isPendingUserAction || isEditing || task.status_id !== 1,
   });
 
   const style = {
@@ -60,7 +60,7 @@ export function TaskItem({ task, onUpdate, onNavigate, onCancel, onAcceptProposa
   };
 
   const handleDoubleClick = () => {
-    if (!task.is_delegated && !isPendingUserAction) {
+    if (!isAiTask && !task.is_delegated && !isPendingUserAction) {
       setIsEditing(true);
     }
   };
@@ -81,11 +81,12 @@ export function TaskItem({ task, onUpdate, onNavigate, onCancel, onAcceptProposa
   const isTaskFinished = isChecked || isCanceled;
   const isDelegationLocked = task.delegation_locked_at != null;
 
-  const delegateToggleColor = task.is_delegated
-    ? isDelegationLocked || isPendingUserAction
-      ? "bg-red-200 hover:bg-red-300"
-      : "bg-green-200 hover:bg-green-300"
-    : "";
+  const delegateToggleColor =
+    task.is_delegated || isAiTask
+      ? isDelegationLocked || isPendingUserAction
+        ? "bg-red-200 hover:bg-red-300"
+        : "bg-green-200 hover:bg-green-300"
+      : "";
 
   return (
     <li
@@ -104,7 +105,12 @@ export function TaskItem({ task, onUpdate, onNavigate, onCancel, onAcceptProposa
       tabIndex={0}
     >
       <div className="flex items-center space-x-4">
-        <div {...attributes} {...listeners} className="cursor-grab touch-none p-2" onClick={(e) => e.stopPropagation()}>
+        <div
+          {...attributes}
+          {...listeners}
+          className={cn("cursor-grab touch-none p-2", isAiTask && "cursor-not-allowed")}
+          onClick={(e) => e.stopPropagation()}
+        >
           <GripVertical className="h-5 w-5 text-muted-foreground" />
         </div>
         <div
@@ -116,7 +122,7 @@ export function TaskItem({ task, onUpdate, onNavigate, onCancel, onAcceptProposa
           <Checkbox
             checked={isChecked}
             onCheckedChange={handleStatusChange}
-            disabled={task.isMutating || isPendingUserAction || isCanceled || !canComplete}
+            disabled={isAiTask || task.isMutating || isPendingUserAction || isCanceled || !canComplete}
           />
         </div>
         {isEditing ? (
@@ -153,14 +159,14 @@ export function TaskItem({ task, onUpdate, onNavigate, onCancel, onAcceptProposa
         >
           <Toggle
             aria-label="Delegate task"
-            pressed={task.is_delegated}
+            pressed={task.is_delegated || isAiTask}
             onPressedChange={(isPressed) => onUpdate(task.id, { is_delegated: isPressed })}
             className={delegateToggleColor}
-            disabled={task.isMutating || isDelegationLocked || isTaskFinished}
+            disabled={isAiTask || task.isMutating || isDelegationLocked || isTaskFinished}
           >
-            {task.is_delegated ? <Bot className="h-5 w-5" /> : <User className="h-5 w-5" />}
+            {task.is_delegated || isAiTask ? <Bot className="h-5 w-5" /> : <User className="h-5 w-5" />}
           </Toggle>
-          <ActionButtons task={task} onCancel={onCancel} />
+          <ActionButtons task={task} onCancel={onCancel} disabled={isAiTask} />
         </div>
       </div>
       {isPendingUserAction && task.aiProposalComment && (

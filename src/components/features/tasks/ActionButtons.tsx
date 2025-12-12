@@ -11,9 +11,10 @@ import { MoreHorizontal } from "lucide-react";
 export interface ActionButtonsProps {
   task: TaskViewModel;
   onCancel: (id: string) => void;
+  disabled?: boolean;
 }
 
-export function ActionButtons({ task, onCancel }: ActionButtonsProps) {
+export function ActionButtons({ task, onCancel, disabled }: ActionButtonsProps) {
   const isMutating = task.isMutating;
   const isDelegated = task.is_delegated;
   const canCancel = (task.active_subtask_count ?? 0) === 0 && (task.completed_subtask_count ?? 0) === 0;
@@ -22,7 +23,7 @@ export function ActionButtons({ task, onCancel }: ActionButtonsProps) {
     <div className="flex items-center">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" disabled={isMutating}>
+          <Button variant="ghost" size="sm" disabled={disabled || isMutating}>
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
