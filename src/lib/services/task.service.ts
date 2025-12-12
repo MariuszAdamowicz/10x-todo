@@ -119,7 +119,7 @@ export class TaskService {
 
     const { filters, auth } = options;
     const { userId } = auth;
-    const { projectId, parentId } = filters;
+    const { projectId, parentId, delegated } = filters;
 
     if (!userId || !projectId) {
       throw new AuthorizationError("User and Project ID are required.");
@@ -129,6 +129,7 @@ export class TaskService {
       p_project_id: projectId,
       p_user_id: userId,
       p_parent_id: parentId,
+      p_is_delegated: delegated,
     });
 
     if (error) {
@@ -269,32 +270,43 @@ export class TaskService {
       throw new AuthorizationError("Authentication required.");
     }
 
-    // Base query
+    // Fetch the task first to check ownership and apply specific rules
+    const { data: existingTask, error: fetchError } = await this.supabase
+      .from("tasks")
+      .select("id, project_id, created_by_ai, projects(user_id)")
+      .eq("id", taskId)
+      .single();
+
+    if (fetchError || !existingTask) {
+      throw new TaskNotFoundError();
+    }
+
     const query = this.supabase.from("tasks").update(data).eq("id", taskId);
 
-    // Authorization check
     if (auth.userId) {
-      const { data: projectData, error: projectError } = await this.supabase
-        .from("tasks")
-        .select("projects(user_id)")
-        .eq("id", taskId)
-        .single();
-
-      if (projectError || !projectData) {
-        throw new TaskNotFoundError();
-      }
-
-      if (projectData.projects?.user_id !== auth.userId) {
-        throw new AuthorizationError();
+      // Human user updating a task
+      if (existingTask.projects?.user_id !== auth.userId) {
+        throw new AuthorizationError("User does not have access to this task.");
       }
     } else if (auth.aiProjectId) {
-      query.eq("project_id", auth.aiProjectId);
+      // AI agent updating a task
+      if (existingTask.project_id !== auth.aiProjectId) {
+        throw new AuthorizationError("AI agent cannot access tasks outside of its project.");
+      }
 
       if (data.is_delegated !== undefined) {
         throw new AuthorizationError("AI is not allowed to change the delegation status.");
       }
-      if (data.status_id !== undefined) {
-        throw new AuthorizationError("AI is not allowed to change the task status directly.");
+
+      if (existingTask.created_by_ai) {
+        // This is an AI-owned sub-task.
+        // US-021: Allow status change to 'Done' or 'Canceled'.
+        if (data.status_id && ![2, 3].includes(data.status_id)) {
+          throw new AuthorizationError("AI can only change status of its own sub-tasks to Done or Canceled.");
+        }
+      } else {
+        // This is a main delegated task. AI cannot update it directly.
+        throw new AuthorizationError("AI can only propose status changes for delegated tasks, not update them directly.");
       }
     }
 

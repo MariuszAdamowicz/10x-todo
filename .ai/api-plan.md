@@ -131,9 +131,9 @@ All endpoints are prefixed with `/api`. Authentication is required for all endpo
 
 #### **`GET /tasks`**
 
-- **Description**: Get all tasks for a project. A `project_id` is required for user-based requests. Can be filtered by parent task.
+- **Description**: Get all tasks. For users, `project_id` is required. For AI agents, the project is inferred from the API key.
 - **Query Parameters**:
-  - `project_id` (uuid, required): The ID of the project to retrieve tasks from.
+  - `project_id` (uuid, required for users): The ID of the project to retrieve tasks from.
   - `parent_id` (uuid, optional): Filters tasks to get children of a specific parent task. If not provided, returns top-level tasks (where `parent_id` is null).
   - `delegated` (boolean, optional, AI-only): If `true`, returns only tasks delegated to the AI.
 - **Success Response (200 OK)**:
@@ -163,7 +163,7 @@ All endpoints are prefixed with `/api`. Authentication is required for all endpo
 - **Request Body**:
   ```json
   {
-    "project_id": "uuid", // Required for user, inferred from API key for AI
+    "project_id": "uuid", // Required for user requests, ignored for AI requests.
     "parent_id": "uuid | null",
     "title": "string",
     "description": "string | null"
@@ -171,9 +171,9 @@ All endpoints are prefixed with `/api`. Authentication is required for all endpo
   ```
 - **Success Response (201 Created)**: Returns the newly created task object.
 - **Error Responses**:
-  - `400 Bad Request`: `title` or `project_id` is missing.
+  - `400 Bad Request`: `title` or `project_id` (for users) is missing.
   - `401 Unauthorized`: Invalid credentials.
-  - `403 Forbidden`: (AI) Attempting to create a sub-task under a non-delegated task or at a depth > 1.
+  - `403 Forbidden`: (AI) Attempting to create a sub-task under a non-delegated task.
 
 #### **`GET /tasks/{id}`**
 

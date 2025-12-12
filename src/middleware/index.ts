@@ -1,19 +1,29 @@
 import { defineMiddleware } from "astro:middleware";
 import { createSupabaseServer } from "@/db/supabase.client";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/db/database.types";
 
 // Public routes that do not require session authentication.
-// The root '/' is now a protected route that redirects based on auth state.
 const PUBLIC_PATHS = ["/login", "/register", "/api/auth/login", "/api/auth/register", "/api/auth/logout"];
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const { url, request, redirect, cookies } = context;
+
+  // This client is for user session management and is scoped to the user.
   const supabase = createSupabaseServer({ cookies, headers: request.headers });
   context.locals.supabase = supabase;
 
   // API key authentication takes precedence for API routes.
   const apiKey = request.headers.get("X-API-Key");
   if (url.pathname.startsWith("/api/") && apiKey) {
-    const { data: project, error } = await supabase
+    // This admin client bypasses RLS to look up the project by API key.
+    // It should only be used for this purpose.
+    const supabaseAdmin = createClient<Database>(
+      import.meta.env.SUPABASE_URL,
+      import.meta.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+
+    const { data: project, error } = await supabaseAdmin
       .from("projects")
       .select("id, user_id")
       .eq("api_key", apiKey)
@@ -25,7 +35,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
       });
     }
 
+    // Attach the project and owner info to locals for use in API endpoints.
     context.locals.user = { id: project.user_id };
+    context.locals.aiProjectId = project.id;
     return next();
   }
 

@@ -2,13 +2,13 @@ import type { APIRoute } from "astro";
 import { GetTasksQuerySchema, TaskCreateSchema } from "@/lib/schemas/task.schemas";
 import { TaskService } from "@/lib/services/task.service";
 import type { TaskCreateCommand } from "@/types";
-import { createSupabaseServer } from "@/db/supabase.client";
 import { AuthorizationError, TaskNotFoundError } from "@/lib/errors";
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ url, locals, cookies, request }) => {
-  const { user } = locals;
+export const GET: APIRoute = async ({ url, locals }) => {
+  const { user, supabase, aiProjectId } = locals;
+
   if (!user?.id) {
     return new Response(JSON.stringify({ message: "Unauthorized" }), { status: 401 });
   }
@@ -28,8 +28,13 @@ export const GET: APIRoute = async ({ url, locals, cookies, request }) => {
     }
 
     const { page, limit, ...filters } = validation.data;
-    const auth = { userId: user.id };
-    const supabase = createSupabaseServer({ cookies, headers: request.headers });
+    const auth = { userId: user.id, aiProjectId };
+
+    // If AI is making the request, ensure the projectId filter matches the one from the API key
+    if (aiProjectId) {
+      filters.projectId = aiProjectId;
+    }
+
     const taskService = new TaskService(supabase);
     const { data, count } = await taskService.getTasks({
       filters,
@@ -69,9 +74,11 @@ export const GET: APIRoute = async ({ url, locals, cookies, request }) => {
   }
 };
 
-export const POST: APIRoute = async ({ request, locals, cookies }) => {
-  const { user } = locals;
-  if (!user?.id) {
+export const POST: APIRoute = async ({ request, locals }) => {
+  const { user, supabase, aiProjectId } = locals;
+
+  // For both users and AI, an authenticated identity is required.
+  if (!user?.id && !aiProjectId) {
     return new Response(JSON.stringify({ message: "Unauthorized" }), { status: 401 });
   }
 
@@ -90,8 +97,14 @@ export const POST: APIRoute = async ({ request, locals, cookies }) => {
     }
 
     const command: TaskCreateCommand = validation.data;
-    const auth = { userId: user.id }; // Simplified auth, works for both user and AI
-    const supabase = createSupabaseServer({ cookies, headers: request.headers });
+    const auth: { userId?: string; projectId?: string } = {};
+
+    if (aiProjectId) {
+      auth.projectId = aiProjectId;
+    } else if (user?.id) {
+      auth.userId = user.id;
+    }
+
     const taskService = new TaskService(supabase);
     const newTask = await taskService.createTask(command, auth);
 

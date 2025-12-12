@@ -8,7 +8,8 @@
 create or replace function public.get_tasks_with_subtask_counts(
   p_project_id uuid,
   p_user_id uuid,
-  p_parent_id uuid default null
+  p_parent_id uuid default null,
+  p_is_delegated boolean default null
 )
 returns table (
   id uuid,
@@ -26,7 +27,10 @@ returns table (
   completed_subtask_count bigint,
   canceled_subtask_count bigint,
   task_comments jsonb
-) as $$
+)
+language plpgsql
+security definer
+as $$
 begin
   return query
   with tasks_with_comments as (
@@ -83,6 +87,7 @@ begin
       (
         (p_parent_id is null and t.parent_id is null) or
         (t.parent_id = p_parent_id)
-      );
+      ) and
+      (p_is_delegated is null or t.is_delegated = p_is_delegated);
 end;
-$$ language plpgsql;
+$$;

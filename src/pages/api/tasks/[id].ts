@@ -1,7 +1,6 @@
 import type { APIContext } from "astro";
 import { z } from "zod";
 import { TaskService } from "@/lib/services/task.service";
-import { createSupabaseServer } from "@/db/supabase.client";
 import { TaskUpdateSchema } from "@/lib/schemas/task.schemas";
 import { AuthorizationError, TaskNotFoundError } from "@/lib/errors";
 
@@ -9,8 +8,8 @@ export const prerender = false;
 
 const taskIdSchema = z.string().uuid();
 
-export async function GET({ params, locals, cookies, request }: APIContext) {
-  const { user } = locals;
+export async function GET({ params, locals }: APIContext) {
+  const { user, supabase } = locals;
   if (!user) {
     return new Response(JSON.stringify({ message: "Unauthorized" }), { status: 401 });
   }
@@ -28,7 +27,6 @@ export async function GET({ params, locals, cookies, request }: APIContext) {
   }
 
   const taskId = validation.data;
-  const supabase = createSupabaseServer({ cookies, headers: request.headers });
 
   try {
     const taskService = new TaskService(supabase);
@@ -59,9 +57,9 @@ export async function GET({ params, locals, cookies, request }: APIContext) {
   }
 }
 
-export async function PATCH({ params, request, locals, cookies }: APIContext) {
-  const { user } = locals;
-  if (!user) {
+export async function PATCH({ params, request, locals }: APIContext) {
+  const { user, supabase, aiProjectId } = locals;
+  if (!user && !aiProjectId) {
     return new Response(JSON.stringify({ message: "Unauthorized" }), { status: 401 });
   }
 
@@ -101,10 +99,14 @@ export async function PATCH({ params, request, locals, cookies }: APIContext) {
   }
   const updateData = bodyValidation.data;
 
-  const supabase = createSupabaseServer({ cookies, headers: request.headers });
-
   try {
-    const auth = { userId: user.id };
+    const auth: { userId?: string; aiProjectId?: string } = {};
+    if (aiProjectId) {
+      auth.aiProjectId = aiProjectId;
+    } else if (user) {
+      auth.userId = user.id;
+    }
+
     const taskService = new TaskService(supabase);
     const updatedTask = await taskService.updateTask(taskId, updateData, auth);
 
