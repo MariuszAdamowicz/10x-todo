@@ -25,7 +25,10 @@ export const GetTasksQuerySchema = z.object({
   statusId: z.coerce.number().int().optional(),
   page: z.coerce.number().int().min(1).optional().default(1),
   limit: z.coerce.number().int().min(1).max(100).optional().default(10),
-  delegated: z.coerce.boolean().optional(),
+  delegated: z
+    .enum(["true", "false"])
+    .transform((val) => val === "true")
+    .optional(),
 });
 
 export const taskProposeStatusSchema = z.object({
