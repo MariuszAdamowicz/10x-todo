@@ -25,3 +25,9 @@ pnpm-debug.log*
 
 # gemini
 .gemini/tmp/
+
+# test results
+playwright-report/
+test-results/
+.vite/
+.vercel/
