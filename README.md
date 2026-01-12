@@ -20,6 +20,7 @@ The core workflow involves:
 | **Frontend** | [Astro 5](https://astro.build/), [React 19](https://react.dev/), [TypeScript](https://www.typescriptlang.org/)                              |
 | **Styling**  | [Tailwind CSS 4](https://tailwindcss.com/), [Shadcn/ui](https://ui.shadcn.com/)                                                             |
 | **Backend**  | [Supabase](https://supabase.com/) (PostgreSQL, Authentication, BaaS)                                                                        |
+| **Testing**  | [Vitest](https://vitest.dev/) (Unit/Integration), [Playwright](https://playwright.dev/) (E2E)                                               |
 | **DevOps**   | [GitHub Actions](https://github.com/features/actions) for CI/CD, [Docker](https://www.docker.com/)                                          |
 | **Tooling**  | [Node.js](https://nodejs.org/), [ESLint](https://eslint.org/), [Prettier](https://prettier.io/), [Husky](https://typicode.github.io/husky/) |
 
