@@ -8,7 +8,7 @@ interface ProjectCardProps {
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
   return (
-    <a href={project.href} className="block">
+    <a href={project.href} className="block" data-test-id="project-card">
       <Card className="h-full hover:shadow-md transition-shadow">
         <CardHeader>
           <CardTitle>{project.name}</CardTitle>

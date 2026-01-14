@@ -35,7 +35,7 @@ export default function UserNav({ user }: UserNavProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative rounded-full">
+        <Button variant="ghost" size="icon" className="relative rounded-full" data-test-id="user-menu-trigger">
           <UserAvatar user={user} />
         </Button>
       </DropdownMenuTrigger>
@@ -47,7 +47,7 @@ export default function UserNav({ user }: UserNavProps) {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout}>Log out</DropdownMenuItem>
+        <DropdownMenuItem onClick={handleLogout} data-test-id="logout-btn">Log out</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

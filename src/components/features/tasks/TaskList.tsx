@@ -60,7 +60,7 @@ export function TaskList({
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={tasks} strategy={verticalListSortingStrategy}>
-        <ul className="mt-4 space-y-2">
+        <ul className="mt-4 space-y-2" data-test-id="task-list">
           {tasks.map((task) => (
             <TaskItem
               key={task.id}

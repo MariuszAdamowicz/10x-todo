@@ -25,8 +25,9 @@ export function AddTaskForm({ onAddTask, isLoading }: AddTaskFormProps) {
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         disabled={isLoading}
+        data-test-id="new-task-input"
       />
-      <Button type="submit" disabled={isLoading || !title.trim()}>
+      <Button type="submit" disabled={isLoading || !title.trim()} data-test-id="add-task-btn">
         {isLoading ? "Adding..." : "Add Task"}
       </Button>
     </form>

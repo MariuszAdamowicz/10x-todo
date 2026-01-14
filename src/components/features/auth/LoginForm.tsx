@@ -60,6 +60,7 @@ export default function LoginForm() {
               placeholder="name@example.com"
               className="bg-white/5 border-white/20 focus:bg-white/10 focus:ring-offset-blue-500"
               {...register("email")}
+              data-test-id="login-email"
             />
             {errors.email && <p className="text-red-400 text-sm mt-1">{errors.email.message}</p>}
           </div>
@@ -70,6 +71,7 @@ export default function LoginForm() {
               type="password"
               className="bg-white/5 border-white/20 focus:bg-white/10 focus:ring-offset-blue-500"
               {...register("password")}
+              data-test-id="login-password"
             />
             {errors.password && <p className="text-red-400 text-sm mt-1">{errors.password.message}</p>}
           </div>
@@ -79,6 +81,7 @@ export default function LoginForm() {
             type="submit"
             className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold"
             disabled={isSubmitting}
+            data-test-id="login-submit"
           >
             {isSubmitting ? "Logging In..." : "Log In"}
           </Button>

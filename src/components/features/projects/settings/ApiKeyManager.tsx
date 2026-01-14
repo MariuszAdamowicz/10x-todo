@@ -51,8 +51,8 @@ export default function ApiKeyManager({
         <div className="space-y-2">
           <Label htmlFor="api-key">Your API Key</Label>
           <div className="flex items-center space-x-2">
-            <Input id="api-key" readOnly type={project.isApiKeyVisible ? "text" : "password"} value={project.apiKey} />
-            <Button variant="outline" size="icon" onClick={onToggleVisibility}>
+            <Input id="api-key" readOnly type={project.isApiKeyVisible ? "text" : "password"} value={project.apiKey} data-test-id="api-key-input" />
+            <Button variant="outline" size="icon" onClick={onToggleVisibility} data-test-id="toggle-api-key-btn">
               {project.isApiKeyVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               <span className="sr-only">{project.isApiKeyVisible ? "Hide API Key" : "Show API Key"}</span>
             </Button>

@@ -103,6 +103,7 @@ export function TaskItem({ task, onUpdate, onNavigate, onCancel, onAcceptProposa
       onKeyDown={handleKeyDown}
       role="button"
       tabIndex={0}
+      data-test-id="task-item"
     >
       <div className="flex items-center space-x-4">
         <div
@@ -110,6 +111,7 @@ export function TaskItem({ task, onUpdate, onNavigate, onCancel, onAcceptProposa
           {...listeners}
           className={cn("cursor-grab touch-none p-2", isAiTask && "cursor-not-allowed")}
           onClick={(e) => e.stopPropagation()}
+          data-test-id="task-drag-handle"
         >
           <GripVertical className="h-5 w-5 text-muted-foreground" />
         </div>
@@ -138,16 +140,16 @@ export function TaskItem({ task, onUpdate, onNavigate, onCancel, onAcceptProposa
             />
           </div>
         ) : (
-          <span className={cn("flex-1", (isChecked || isCanceled) && "text-muted-foreground line-through")}>
+          <span className={cn("flex-1", (isChecked || isCanceled) && "text-muted-foreground line-through")} data-test-id="task-title">
             {task.title}
           </span>
         )}
         <div className="flex items-center space-x-2">
           {totalSubtasks > 0 && (
             <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-              <Badge variant="outline">{task.active_subtask_count ?? 0}</Badge>
-              <Badge variant="secondary">{task.completed_subtask_count ?? 0}</Badge>
-              <Badge variant="destructive">{task.canceled_subtask_count ?? 0}</Badge>
+              <Badge variant="outline" data-test-id="badge-active">{task.active_subtask_count ?? 0}</Badge>
+              <Badge variant="secondary" data-test-id="badge-completed">{task.completed_subtask_count ?? 0}</Badge>
+              <Badge variant="destructive" data-test-id="badge-canceled">{task.canceled_subtask_count ?? 0}</Badge>
             </div>
           )}
         </div>
@@ -163,6 +165,7 @@ export function TaskItem({ task, onUpdate, onNavigate, onCancel, onAcceptProposa
             onPressedChange={(isPressed) => onUpdate(task.id, { is_delegated: isPressed })}
             className={delegateToggleColor}
             disabled={isAiTask || task.isMutating || isDelegationLocked || isTaskFinished}
+            data-test-id="task-delegate-btn"
           >
             {task.is_delegated || isAiTask ? <Bot className="h-5 w-5" /> : <User className="h-5 w-5" />}
           </Toggle>

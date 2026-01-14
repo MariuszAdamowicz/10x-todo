@@ -63,7 +63,7 @@ export function ProjectAndTasksView({ project, initialTasks, breadcrumbs, parent
           {project.description && <p className="mt-2 text-muted-foreground">{project.description}</p>}
         </div>
         <a href={`/projects/${project.id}/settings`}>
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" data-test-id="project-settings-link">
             <Settings className="h-4 w-4" />
             <span className="sr-only">Project Settings</span>
           </Button>

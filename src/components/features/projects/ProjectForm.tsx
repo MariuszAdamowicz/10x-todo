@@ -41,14 +41,14 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, isSubmitting }) => 
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
       <div>
         <Label htmlFor="name">Nazwa projektu</Label>
-        <Input id="name" {...register("name")} disabled={isSubmitting} />
+        <Input id="name" {...register("name")} disabled={isSubmitting} data-test-id="project-name-input" />
         {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
       </div>
       <div>
         <Label htmlFor="description">Opis</Label>
-        <Textarea id="description" {...register("description")} disabled={isSubmitting} />
+        <Textarea id="description" {...register("description")} disabled={isSubmitting} data-test-id="project-description-input" />
       </div>
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
+      <Button type="submit" className="w-full" disabled={isSubmitting} data-test-id="project-submit-btn">
         {isSubmitting ? "Tworzenie..." : "Utwórz projekt"}
       </Button>
     </form>
