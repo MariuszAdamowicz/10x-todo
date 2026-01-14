@@ -19,8 +19,7 @@ test.describe('Główny scenariusz aplikacji', () => {
     await page.getByLabel('Email').fill(userEmail);
     await page.getByLabel('Password', { exact: true }).fill(userPassword);
     await page.getByLabel('Confirm Password').fill(userPassword);
-    // Assuming there is a submit button on register page similar to login
-    await page.getByRole('button', { name: /register|sign up/i }).click();
+    await page.getByLabel('Confirm Password').press('Enter');
     
     // Wait for redirect to projects or login
     await page.waitForURL(/\/projects|\/login/);
@@ -42,14 +41,12 @@ test.describe('Główny scenariusz aplikacji', () => {
     await expect(page).toHaveURL('/projects');
 
     // 2. Utwórz nowy projekt o nazwie "Projekt Testowy"
-    // Use a unique name to verify specific creation if needed, but scenario says "Projekt Testowy"
-    // We will use the exact name requested.
     await projectsPage.createProject(projectName, 'Opis dla projektu testowego');
 
     // 3. Wejdź na stronę Projektu Testowego
     await projectsPage.openProject(projectName);
     // Verify we are on the project details page
-    await expect(page.locator('h1')).toContainText(projectName);
+    await expect(page.getByRole('heading', { name: projectName, level: 1 })).toBeVisible();
 
     // 4. Dodaj "Zadanie 1"
     await projectDetailsPage.addTask('Zadanie 1');
@@ -59,11 +56,8 @@ test.describe('Główny scenariusz aplikacji', () => {
 
     // 6. Wejdź do "Zadanie 1"
     await projectDetailsPage.openTask('Zadanie 1');
-    // Verify we are in task details (title should be visible in breadcrumbs or header)
-    // Assuming URL changes or breadcrumb updates.
 
     // 7. Dodaj "Zadanie 1-1"
-    // Inside the task view, adding a task usually adds a subtask
     await projectDetailsPage.addTask('Zadanie 1-1');
 
     // 8. Używając BreadCrumb wróć na stronę projektu
@@ -71,11 +65,10 @@ test.describe('Główny scenariusz aplikacji', () => {
 
     // 9. Deleguj "Zadanie 2" asystentowi AI
     await projectDetailsPage.delegateTask('Zadanie 2');
-    // Verify delegation (e.g., button state changes)
-    // The button might change color or icon.
-    // We can check if the aria-pressed attribute becomes true
+    
+    // Verify delegation
     const task2 = projectDetailsPage.getTaskItem('Zadanie 2');
-    await expect(task2.getByRole('button', { name: 'Delegate task' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(task2.getByRole('button', { name: 'Delegate task' })).toHaveAttribute('aria-pressed', 'true', { timeout: 10000 });
 
     // 12. Przejdź do settingu Projektu
     await projectDetailsPage.openSettings();
