@@ -43,7 +43,9 @@ const ProjectsView = () => {
     <div className="container mx-auto p-4 pt-16">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Moje Projekty</h1>
-        <Button onClick={() => setIsModalOpen(true)} data-test-id="create-project-btn">Utwórz nowy projekt</Button>
+        <Button onClick={() => setIsModalOpen(true)} data-test-id="create-project-btn">
+          Utwórz nowy projekt
+        </Button>
       </div>
 
       {renderContent()}

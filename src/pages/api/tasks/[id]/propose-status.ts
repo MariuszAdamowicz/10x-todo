@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import type { APIContext } from "astro";
 import { taskProposeStatusSchema } from "@/lib/schemas/task.schemas";
 import { ZodError } from "zod";

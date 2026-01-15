@@ -41,7 +41,7 @@ export default function ProjectSettingsForm({
     <Card>
       <CardHeader>
         <CardTitle>Project Details</CardTitle>
-        <CardDescription>Update your project's name and description.</CardDescription>
+        <CardDescription>Update your project&apos;s name and description.</CardDescription>
       </CardHeader>
       <form onSubmit={handleSave}>
         <CardContent className="space-y-4">

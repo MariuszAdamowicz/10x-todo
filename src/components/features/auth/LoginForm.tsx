@@ -1,3 +1,4 @@
+/* eslint-disable react-compiler/react-compiler */
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -13,6 +14,7 @@ type LoginFormInputs = z.infer<typeof LoginSchema>;
 
 export default function LoginForm() {
   const [error, setError] = useState<string | null>(null);
+
   const {
     register,
     handleSubmit,

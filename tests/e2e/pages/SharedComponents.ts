@@ -1,4 +1,4 @@
-import { type Page, type Locator } from '@playwright/test';
+import { type Page, type Locator } from "@playwright/test";
 
 export class SharedComponents {
   readonly page: Page;
@@ -7,8 +7,8 @@ export class SharedComponents {
 
   constructor(page: Page) {
     this.page = page;
-    this.userMenuTrigger = page.locator('button.rounded-full');
-    this.logoutBtn = page.getByRole('menuitem', { name: 'Log out' });
+    this.userMenuTrigger = page.locator("button.rounded-full");
+    this.logoutBtn = page.getByRole("menuitem", { name: "Log out" });
   }
 
   async logout() {

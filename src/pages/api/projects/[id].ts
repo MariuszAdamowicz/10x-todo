@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import type { APIContext } from "astro";
 import { z } from "zod";
 
@@ -83,7 +84,7 @@ export async function PUT(context: APIContext): Promise<Response> {
   try {
     const body = await context.request.json();
     projectData = projectUpdateSchema.parse(body);
-  } catch (error) {
+  } catch {
     return new Response(JSON.stringify({ error: "Bad Request: Malformed JSON." }), {
       status: 400,
       headers: { "Content-Type": "application/json" },

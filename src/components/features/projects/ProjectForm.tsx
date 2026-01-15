@@ -46,7 +46,12 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, isSubmitting }) => 
       </div>
       <div>
         <Label htmlFor="description">Opis</Label>
-        <Textarea id="description" {...register("description")} disabled={isSubmitting} data-test-id="project-description-input" />
+        <Textarea
+          id="description"
+          {...register("description")}
+          disabled={isSubmitting}
+          data-test-id="project-description-input"
+        />
       </div>
       <Button type="submit" className="w-full" disabled={isSubmitting} data-test-id="project-submit-btn">
         {isSubmitting ? "Tworzenie..." : "Utwórz projekt"}

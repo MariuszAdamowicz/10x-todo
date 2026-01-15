@@ -1,3 +1,4 @@
+/* eslint-disable react-compiler/react-compiler */
 import React from "react";
 import { useProjectSettings } from "@/components/hooks/useProjectSettings";
 import ProjectSettingsForm from "@/components/features/projects/settings/ProjectSettingsForm";

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import type { APIContext } from "astro";
 import { z } from "zod";
 import { TaskService } from "@/lib/services/task.service";
@@ -80,11 +81,8 @@ export async function PATCH({ params, request, locals }: APIContext) {
   let body;
   try {
     body = await request.json();
-  } catch (e) {
-    return new Response(JSON.stringify({ message: "Invalid JSON body" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+  } catch {
+    return new Response(JSON.stringify({ error: "Invalid JSON body" }), { status: 400 });
   }
 
   const bodyValidation = TaskUpdateSchema.safeParse(body);
@@ -110,11 +108,11 @@ export async function PATCH({ params, request, locals }: APIContext) {
     const taskService = new TaskService(supabase);
     const updatedTask = await taskService.updateTask(taskId, updateData, auth);
 
-    return new Response(JSON.stringify(updatedTask), {
+    return new Response(JSON.stringify({ updatedTask }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof TaskNotFoundError) {
       return new Response(JSON.stringify({ message: error.message }), {
         status: 404,
@@ -128,7 +126,7 @@ export async function PATCH({ params, request, locals }: APIContext) {
       });
     }
     console.error("Error updating task:", error);
-    return new Response(JSON.stringify({ message: error.message || "Internal Server Error" }), {
+    return new Response(JSON.stringify({ message: (error as Error).message || "Internal Server Error" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });

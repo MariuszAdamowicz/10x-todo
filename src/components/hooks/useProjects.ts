@@ -50,7 +50,7 @@ const useProjects = () => {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to create project");
       }
-      
+
       // Refetch projects to show the new one.
       await fetchProjects();
     } catch (err) {

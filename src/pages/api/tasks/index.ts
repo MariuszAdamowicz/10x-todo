@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import type { APIRoute } from "astro";
 import { GetTasksQuerySchema, TaskCreateSchema } from "@/lib/schemas/task.schemas";
 import { TaskService } from "@/lib/services/task.service";

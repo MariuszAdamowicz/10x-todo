@@ -1,6 +1,5 @@
-import { useState } from "react";
-import { Eye, EyeOff, Copy, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Copy, Eye, EyeOff, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,7 +50,13 @@ export default function ApiKeyManager({
         <div className="space-y-2">
           <Label htmlFor="api-key">Your API Key</Label>
           <div className="flex items-center space-x-2">
-            <Input id="api-key" readOnly type={project.isApiKeyVisible ? "text" : "password"} value={project.apiKey} data-test-id="api-key-input" />
+            <Input
+              id="api-key"
+              readOnly
+              type={project.isApiKeyVisible ? "text" : "password"}
+              value={project.apiKey}
+              data-test-id="api-key-input"
+            />
             <Button variant="outline" size="icon" onClick={onToggleVisibility} data-test-id="toggle-api-key-btn">
               {project.isApiKeyVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               <span className="sr-only">{project.isApiKeyVisible ? "Hide API Key" : "Show API Key"}</span>

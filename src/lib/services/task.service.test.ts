@@ -1,10 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
 import { TaskService } from "./task.service";
-import { AuthorizationError, InvalidStateError, ProjectNotFoundError, TaskNotFoundError } from "../errors";
-import type { TaskCreateCommand, GetTasksOptions } from "@/types";
+import { AuthorizationError, InvalidStateError } from "../errors";
+import type { TaskCreateCommand } from "@/types";
 
 // Helper to create a fully chainable mock for a single test
 const createChainableMock = () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mock: any = {
     rpc: vi.fn(() => mock),
     from: vi.fn(() => mock),
@@ -160,9 +161,9 @@ describe("TaskService", () => {
   describe("Guard Clauses and General Error Handling", () => {
     it("getTasks should throw AuthorizationError if auth is missing", async () => {
       const taskService = new TaskService(createChainableMock());
-      await expect(
-        taskService.getTasks({ filters: {}, pagination: { page: 1, limit: 10 }, auth: {} })
-      ).rejects.toThrow(AuthorizationError);
+      await expect(taskService.getTasks({ filters: {}, pagination: { page: 1, limit: 10 }, auth: {} })).rejects.toThrow(
+        AuthorizationError
+      );
     });
 
     it("proposeTaskStatus should throw InvalidStateError for an invalid proposed status", async () => {

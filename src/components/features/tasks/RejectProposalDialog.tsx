@@ -31,7 +31,7 @@ export function RejectProposalDialog({ isOpen, onClose, onSubmit, isLoading }: R
         <DialogHeader>
           <DialogTitle>Reject Proposal</DialogTitle>
           <DialogDescription>
-            Please provide a reason for rejecting the AI's proposal. This feedback will help the assistant learn.
+            Please provide a reason for rejecting the AI&apos;s proposal. This feedback will help the assistant learn.
           </DialogDescription>
         </DialogHeader>
         <Textarea

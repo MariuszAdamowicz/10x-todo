@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import type { SupabaseClient } from "@/db/supabase.client";
 import type {
   ReorderTasksDto,
@@ -227,8 +228,18 @@ export class TaskService {
     }
 
     const newPosition = (lastTask?.position ?? 0) + 1;
-    const newTaskData = { ...command, project_id: projectId, position: newPosition, created_by_ai: false, status_id: 1 };
-    const { data: newTask, error: insertError } = await this.supabase.from("tasks").insert(newTaskData).select().single();
+    const newTaskData = {
+      ...command,
+      project_id: projectId,
+      position: newPosition,
+      created_by_ai: false,
+      status_id: 1,
+    };
+    const { data: newTask, error: insertError } = await this.supabase
+      .from("tasks")
+      .insert(newTaskData)
+      .select()
+      .single();
 
     if (insertError || !newTask) {
       console.error("Supabase insert error:", insertError);
@@ -250,7 +261,7 @@ export class TaskService {
       }
       throw new TaskNotFoundError();
     }
-    
+
     if (data.project?.user_id !== userId) {
       throw new AuthorizationError();
     }
@@ -309,7 +320,9 @@ export class TaskService {
         }
       } else {
         // This is a main delegated task. AI cannot update it directly.
-        throw new AuthorizationError("AI can only propose status changes for delegated tasks, not update them directly.");
+        throw new AuthorizationError(
+          "AI can only propose status changes for delegated tasks, not update them directly."
+        );
       }
     }
 

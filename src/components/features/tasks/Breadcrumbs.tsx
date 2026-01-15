@@ -23,7 +23,9 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
               {item.current ? (
                 <BreadcrumbPage>{item.name}</BreadcrumbPage>
               ) : (
-                <BreadcrumbLink href={item.href} data-test-id="breadcrumb-link">{item.name}</BreadcrumbLink>
+                <BreadcrumbLink href={item.href} data-test-id="breadcrumb-link">
+                  {item.name}
+                </BreadcrumbLink>
               )}
             </BreadcrumbItem>
             {index < items.length - 1 && <BreadcrumbSeparator />}

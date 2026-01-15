@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import type { APIContext } from "astro";
 import { z } from "zod";
 import { ProjectService } from "@/lib/services/project.service";

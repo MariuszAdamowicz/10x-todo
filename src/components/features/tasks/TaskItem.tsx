@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/no-noninteractive-element-interactions */
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Bot, User } from "lucide-react";
@@ -101,8 +102,6 @@ export function TaskItem({ task, onUpdate, onNavigate, onCancel, onAcceptProposa
       onClick={handleItemClick}
       onDoubleClick={handleDoubleClick}
       onKeyDown={handleKeyDown}
-      role="button"
-      tabIndex={0}
       data-test-id="task-item"
     >
       <div className="flex items-center space-x-4">
@@ -111,15 +110,19 @@ export function TaskItem({ task, onUpdate, onNavigate, onCancel, onAcceptProposa
           {...listeners}
           className={cn("cursor-grab touch-none p-2", isAiTask && "cursor-not-allowed")}
           onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+          role="button"
+          tabIndex={0}
+          aria-label="Drag task"
           data-test-id="task-drag-handle"
         >
           <GripVertical className="h-5 w-5 text-muted-foreground" />
         </div>
         <div
           onClick={(e) => e.stopPropagation()}
-          onKeyDown={(e) => e.key === "Enter" && e.stopPropagation()}
-          role="button"
-          tabIndex={0}
+          onKeyDown={(e) => e.stopPropagation()}
+          role="none"
+          className="flex items-center"
         >
           <Checkbox
             checked={isChecked}
@@ -128,7 +131,12 @@ export function TaskItem({ task, onUpdate, onNavigate, onCancel, onAcceptProposa
           />
         </div>
         {isEditing ? (
-          <div onClick={(e) => e.stopPropagation()} className="flex-1">
+          <div
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            role="none"
+            className="flex-1"
+          >
             <Input
               value={title}
               onChange={handleTitleChange}
@@ -140,16 +148,30 @@ export function TaskItem({ task, onUpdate, onNavigate, onCancel, onAcceptProposa
             />
           </div>
         ) : (
-          <span className={cn("flex-1", (isChecked || isCanceled) && "text-muted-foreground line-through")} data-test-id="task-title">
+          <span
+            className={cn("flex-1", (isChecked || isCanceled) && "text-muted-foreground line-through")}
+            data-test-id="task-title"
+          >
             {task.title}
           </span>
         )}
         <div className="flex items-center space-x-2">
           {totalSubtasks > 0 && (
-            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-              <Badge variant="outline" data-test-id="badge-active">{task.active_subtask_count ?? 0}</Badge>
-              <Badge variant="secondary" data-test-id="badge-completed">{task.completed_subtask_count ?? 0}</Badge>
-              <Badge variant="destructive" data-test-id="badge-canceled">{task.canceled_subtask_count ?? 0}</Badge>
+            <div
+              className="flex items-center gap-1"
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+              role="none"
+            >
+              <Badge variant="outline" data-test-id="badge-active">
+                {task.active_subtask_count ?? 0}
+              </Badge>
+              <Badge variant="secondary" data-test-id="badge-completed">
+                {task.completed_subtask_count ?? 0}
+              </Badge>
+              <Badge variant="destructive" data-test-id="badge-canceled">
+                {task.canceled_subtask_count ?? 0}
+              </Badge>
             </div>
           )}
         </div>

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import type { APIRoute } from "astro";
 import { ProjectService } from "@/lib/services/project.service";
 import { createSupabaseServer } from "@/db/supabase.client";

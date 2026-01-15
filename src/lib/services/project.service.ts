@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import type { SupabaseClient } from "@/db/supabase.client";
 import { AuthorizationError, ProjectNotFoundError } from "@/lib/errors";
 import type {
@@ -92,10 +93,7 @@ export class ProjectService {
    * @returns A promise that resolves to the newly created project.
    * @throws An error if the database query fails.
    */
-  public async createProject(
-    userId: string,
-    projectData: ProjectCreateCommand
-  ): Promise<ProjectCreateResultDto> {
+  public async createProject(userId: string, projectData: ProjectCreateCommand): Promise<ProjectCreateResultDto> {
     const { data, error } = await this.supabase
       .from("projects")
       .insert({
@@ -183,10 +181,7 @@ export class ProjectService {
    * @throws {ProjectNotFoundError} If the project is not found.
    * @throws {AuthorizationError} If the user is not the owner of the project.
    */
-  public async regenerateApiKey(
-    projectId: string,
-    userId: string,
-  ): Promise<{ api_key: string }> {
+  public async regenerateApiKey(projectId: string, userId: string): Promise<{ api_key: string }> {
     // First, verify the user owns the project
     const { data: project, error: fetchError } = await this.supabase
       .from("projects")

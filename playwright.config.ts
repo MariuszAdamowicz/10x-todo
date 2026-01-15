@@ -32,15 +32,15 @@ export default defineConfig({
     },
     {
       name: "chromium",
-      use: { ...devices['Desktop Chrome'] },
-      teardown: 'cleanup db',
+      use: { ...devices["Desktop Chrome"] },
+      teardown: "cleanup db",
     },
   ],
 
   // Run your local dev server before starting the tests.
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
+    command: "npm run dev",
+    url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
   },
 });

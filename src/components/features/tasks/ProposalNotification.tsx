@@ -13,7 +13,7 @@ export function ProposalNotification({ comment, onAccept, onReject, isLoading }:
   return (
     <div className="mt-2 rounded-lg border border-yellow-500 bg-yellow-50 p-3 text-sm text-yellow-800">
       <p className="font-semibold">AI Proposal:</p>
-      <p className="italic">"{comment.comment}"</p>
+      <p className="italic">&quot;{comment.comment}&quot;</p>
       <div className="mt-2 flex justify-end space-x-2">
         <Button
           size="sm"

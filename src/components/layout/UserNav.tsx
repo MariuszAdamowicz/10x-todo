@@ -24,11 +24,10 @@ export default function UserNav({ user }: UserNavProps) {
     const response = await fetch("/api/auth/logout", {
       method: "POST",
     });
-    if (response.ok) {
-      window.location.href = "/";
+    if (!response.ok) {
+      // Handle error (optionally show toast)
     } else {
-      // You might want to show an error to the user here
-      console.error("Logout failed");
+      window.location.href = "/login";
     }
   };
 
@@ -47,7 +46,9 @@ export default function UserNav({ user }: UserNavProps) {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout} data-test-id="logout-btn">Log out</DropdownMenuItem>
+        <DropdownMenuItem onClick={handleLogout} data-test-id="logout-btn">
+          Log out
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

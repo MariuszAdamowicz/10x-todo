@@ -1,4 +1,4 @@
-import { type Page, type Locator, expect } from '@playwright/test';
+import { type Page, type Locator, expect } from "@playwright/test";
 
 export class ProjectsPage {
   readonly page: Page;
@@ -9,23 +9,23 @@ export class ProjectsPage {
 
   constructor(page: Page) {
     this.page = page;
-    this.createProjectBtn = page.getByRole('button', { name: 'Utwórz nowy projekt' });
-    this.nameInput = page.getByLabel('Nazwa projektu');
-    this.descriptionInput = page.getByLabel('Opis');
-    this.submitBtn = page.getByRole('button', { name: 'Utwórz projekt' });
+    this.createProjectBtn = page.getByRole("button", { name: "Utwórz nowy projekt" });
+    this.nameInput = page.getByLabel("Nazwa projektu");
+    this.descriptionInput = page.getByLabel("Opis");
+    this.submitBtn = page.getByRole("button", { name: "Utwórz projekt" });
   }
 
   async goto() {
-    await this.page.goto('/projects');
+    await this.page.goto("/projects");
   }
 
-  async createProject(name: string, description: string = '') {
+  async createProject(name: string, description = "") {
     await this.createProjectBtn.click();
-    
+
     // Retry click if modal doesn't open (handles hydration timing issues)
     try {
       await expect(this.nameInput).toBeVisible({ timeout: 4000 });
-    } catch (e) {
+    } catch {
       await this.createProjectBtn.click();
     }
 
@@ -37,6 +37,6 @@ export class ProjectsPage {
   }
 
   async openProject(name: string) {
-    await this.page.getByRole('link').filter({ hasText: name }).click();
+    await this.page.getByRole("link").filter({ hasText: name }).click();
   }
 }
