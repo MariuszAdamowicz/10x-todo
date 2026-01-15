@@ -1,12 +1,12 @@
-import { defineConfig, devices } from '@playwright/test';
-import dotenv from 'dotenv';
-import path from 'path';
+import { defineConfig, devices } from "@playwright/test";
+import dotenv from "dotenv";
+import path from "path";
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env.test') });
+dotenv.config({ path: path.resolve(process.cwd(), ".env.test") });
 
 // See https://playwright.dev/docs/test-configuration.
 export default defineConfig({
-  testDir: './tests/e2e',
+  testDir: "./tests/e2e",
   // Fail the build on CI if you accidentally left test.only in the source code.
   forbidOnly: !!process.env.CI,
   // Retry on CI only.
@@ -14,24 +14,24 @@ export default defineConfig({
   // Opt out of parallel tests on CI.
   workers: process.env.CI ? 1 : undefined,
   // Reporter to use
-  reporter: 'html',
+  reporter: "html",
   // Shared settings for all the projects below.
   use: {
     // Base URL to use in actions like `await page.goto('/')`.
-    baseURL: 'http://localhost:3000',
+    baseURL: "http://localhost:3000",
 
     // Collect trace when retrying the failed test.
-    trace: 'on-first-retry',
+    trace: "on-first-retry",
   },
 
   // Configure projects for major browsers.
   projects: [
     {
-      name: 'cleanup db',
+      name: "cleanup db",
       testMatch: /global\.teardown\.ts/,
     },
     {
-      name: 'chromium',
+      name: "chromium",
       use: { ...devices['Desktop Chrome'] },
       teardown: 'cleanup db',
     },
