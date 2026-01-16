@@ -40,11 +40,11 @@ export class ProjectDetailsPage {
     await this.newTaskInput.press("Enter");
     const taskItem = this.getTaskItem(title);
     await expect(taskItem).toBeVisible();
-    
+
     // Wait for the optimistic update to resolve (opacity-50 removed)
     // If the task disappears (error handling), this will fail appropriately
     await expect(taskItem).not.toHaveClass(/opacity-50/);
-    
+
     await responsePromise;
   }
 
