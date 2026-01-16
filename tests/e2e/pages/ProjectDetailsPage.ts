@@ -47,7 +47,7 @@ export class ProjectDetailsPage {
 
   async openTask(title: string) {
     await this.page.waitForTimeout(1000);
-    await this.getTaskItem(title).getByText(title).click();
+    await this.getTaskItem(title).click();
     await this.page.waitForURL(/\/tasks\//);
   }
 
