@@ -34,6 +34,8 @@ export function useTasks(initialTasks: TaskWithComments[], projectId: string, pa
   }, [tasks]);
 
   const addTask = async (title: string) => {
+    // eslint-disable-next-line no-console
+    console.log(`Starting addTask for title: ${title}`);
     const optimisticId = `optimistic-${Date.now()}`;
     const newTask: TaskViewModel = {
       id: optimisticId,
@@ -73,11 +75,15 @@ export function useTasks(initialTasks: TaskWithComments[], projectId: string, pa
       }
 
       const createdTask: TaskWithComments = await response.json();
+      // eslint-disable-next-line no-console
+      console.log("Fetch success, replacing optimistic task", createdTask);
 
       setTasks((currentTasks) =>
         currentTasks.map((task) => (task.id === optimisticId ? mapToViewModel(createdTask) : task))
       );
     } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error("Error in addTask:", e);
       toast.error((e as Error).message);
       setTasks((currentTasks) => currentTasks.filter((task) => task.id !== optimisticId));
       setError(e as Error);
