@@ -2,6 +2,9 @@
 import { getViteConfig } from "astro/config";
 
 export default getViteConfig({
+  define: {
+    "import.meta.env.PUBLIC_MOCK_SERVICES": JSON.stringify("false"),
+  },
   test: {
     globals: true,
     environment: "jsdom",
