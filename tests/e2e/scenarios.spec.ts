@@ -53,6 +53,8 @@ test.describe("Główny scenariusz aplikacji", () => {
     // 5. Dodaj "Zadanie 2"
     await projectDetailsPage.addTask("Zadanie 2");
 
+    await page.reload();
+
     // 6. Wejdź do "Zadanie 1"
     await projectDetailsPage.openTask("Zadanie 1");
 
