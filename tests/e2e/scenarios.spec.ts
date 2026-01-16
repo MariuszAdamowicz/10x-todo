@@ -49,6 +49,14 @@ test.describe("Główny scenariusz aplikacji", () => {
 
     // 4. Dodaj "Zadanie 1"
     await projectDetailsPage.addTask("Zadanie 1");
+
+    // Diagnostic: Check for error toast if task disappears
+    const errorToast = page.locator('li[data-sonner-toast][data-type="error"]');
+    if ((await errorToast.count()) > 0) {
+      // eslint-disable-next-line no-console
+      console.log("Error Toast found:", await errorToast.textContent());
+    }
+
     await expect(page.locator('[data-test-id="task-item"]')).toHaveCount(1);
 
     // 5. Dodaj "Zadanie 2"
