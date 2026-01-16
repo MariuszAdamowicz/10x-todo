@@ -1,8 +1,9 @@
+/* eslint-disable no-console */
 import type { APIContext } from "astro";
 import { z } from "zod";
 import { taskRejectProposalSchema } from "@/lib/schemas/task.schemas";
 import { TaskService } from "@/lib/services/task.service";
-import { handleApiError } from "@/lib/errors";
+import { AuthorizationError, InvalidStateError, TaskNotFoundError } from "@/lib/errors";
 import { createSupabaseServer } from "@/db/supabase.client";
 
 export const prerender = false;
@@ -24,6 +25,19 @@ export const POST = async ({ params, request, locals, cookies }: APIContext) => 
 
     return new Response(JSON.stringify(updatedTask));
   } catch (error) {
-    return handleApiError(error);
+    if (error instanceof z.ZodError) {
+      return new Response(JSON.stringify({ message: "Validation failed", errors: error.errors }), { status: 400 });
+    }
+    if (error instanceof TaskNotFoundError) {
+      return new Response(JSON.stringify({ message: error.message }), { status: 404 });
+    }
+    if (error instanceof AuthorizationError) {
+      return new Response(JSON.stringify({ message: error.message }), { status: 403 });
+    }
+    if (error instanceof InvalidStateError) {
+      return new Response(JSON.stringify({ message: error.message }), { status: 409 });
+    }
+    console.error("Error rejecting task proposal:", error);
+    return new Response(JSON.stringify({ message: "Internal Server Error" }), { status: 500 });
   }
 };
