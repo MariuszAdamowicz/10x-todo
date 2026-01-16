@@ -18,10 +18,7 @@ export class ProjectDetailsPage {
   }
 
   getTaskItem(title: string): Locator {
-    return this.page
-      .locator('[data-test-id="task-item"]')
-      .filter({ has: this.page.locator('[data-test-id="task-title"]', { hasText: title }) })
-      .first();
+    return this.page.locator('[data-test-id="task-item"]').filter({ hasText: title }).first();
   }
 
   async addTask(title: string) {
@@ -46,8 +43,10 @@ export class ProjectDetailsPage {
   }
 
   async openTask(title: string) {
-    await this.page.waitForTimeout(1000);
-    await this.getTaskItem(title).click();
+    const item = this.getTaskItem(title);
+    await item.waitFor({ state: "visible", timeout: 10000 });
+    await item.scrollIntoViewIfNeeded();
+    await item.click({ force: true });
     await this.page.waitForURL(/\/tasks\//);
   }
 
