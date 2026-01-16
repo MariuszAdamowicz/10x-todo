@@ -65,12 +65,14 @@ jobs:
     environment: integration
     env:
       # Secrets mapped from .env.example
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      # Configuration (Variables)
+      SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      PUBLIC_SUPABASE_URL: ${{ vars.PUBLIC_SUPABASE_URL }}
+      PUBLIC_MOCK_SERVICES: ${{ vars.PUBLIC_MOCK_SERVICES }}
+      # Secrets (Credentials)
       SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
       PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
-      PUBLIC_MOCK_SERVICES: ${{ secrets.PUBLIC_MOCK_SERVICES }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       # CI flag is automatically set by GitHub Actions, enabling Playwright's CI config
     steps:

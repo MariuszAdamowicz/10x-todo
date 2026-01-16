@@ -35,7 +35,10 @@ function parseCookieHeader(cookieHeader: string | null): { name: string; value: 
  * @returns A Supabase server client instance.
  */
 export const createSupabaseServer = (context: { cookies: AstroCookies; headers: Headers }) => {
-  return createServerClient<Database>(import.meta.env.SUPABASE_URL, import.meta.env.SUPABASE_ANON_KEY, {
+  const supabaseUrl = import.meta.env.SUPABASE_URL || "https://placeholder.supabase.co";
+  const supabaseKey = import.meta.env.SUPABASE_ANON_KEY || "placeholder-key";
+
+  return createServerClient<Database>(supabaseUrl, supabaseKey, {
     cookieOptions,
     cookies: {
       // The `getAll` method is used to read all cookies from the request.
