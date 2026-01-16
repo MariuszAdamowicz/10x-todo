@@ -70,8 +70,8 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
       PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
-      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       PUBLIC_MOCK_SERVICES: ${{ secrets.PUBLIC_MOCK_SERVICES }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       # CI flag is automatically set by GitHub Actions, enabling Playwright's CI config
     steps:
       - name: Checkout repository
