@@ -49,11 +49,11 @@ test.describe("Główny scenariusz aplikacji", () => {
 
     // 4. Dodaj "Zadanie 1"
     await projectDetailsPage.addTask("Zadanie 1");
+    await expect(page.locator('[data-test-id="task-item"]')).toHaveCount(1);
 
     // 5. Dodaj "Zadanie 2"
     await projectDetailsPage.addTask("Zadanie 2");
-
-    await page.reload();
+    await expect(page.locator('[data-test-id="task-item"]')).toHaveCount(2);
 
     // 6. Wejdź do "Zadanie 1"
     await projectDetailsPage.openTask("Zadanie 1");
