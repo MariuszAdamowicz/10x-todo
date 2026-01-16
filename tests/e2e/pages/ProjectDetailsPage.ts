@@ -45,6 +45,20 @@ export class ProjectDetailsPage {
     // If the task disappears (error handling), this will fail appropriately
     await expect(taskItem).not.toHaveClass(/opacity-50/);
 
+    // Verify task still exists (didn't disappear due to error)
+    try {
+      await expect(taskItem).toBeVisible({ timeout: 2000 });
+    } catch {
+      // If task is gone, check for error toast
+      const toasts = this.page.locator("[data-sonner-toast]");
+      const count = await toasts.count();
+      if (count > 0) {
+        // eslint-disable-next-line no-console
+        console.log("Captured Toasts:", await toasts.allTextContents());
+      }
+      throw new Error("Task disappeared after creation. Check logs for toast errors.");
+    }
+
     await responsePromise;
   }
 
