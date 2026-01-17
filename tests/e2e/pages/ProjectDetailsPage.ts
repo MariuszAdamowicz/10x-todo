@@ -37,7 +37,7 @@ export class ProjectDetailsPage {
         (response.status() === 200 || response.status() === 201)
     );
 
-    await this.newTaskInput.press("Enter");
+    await this.addTaskBtn.click();
     const taskItem = this.getTaskItem(title);
     await expect(taskItem).toBeVisible();
 

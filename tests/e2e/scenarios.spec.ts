@@ -34,6 +34,15 @@ test.describe("Główny scenariusz aplikacji", () => {
     const settingsPage = new ProjectSettingsPage(page);
     const sharedComponents = new SharedComponents(page);
 
+    // Enable browser logging to stdout for debugging
+    page.on("console", (msg) => {
+      if (msg.type() === "error") {
+        console.error(`BROWSER ERROR: ${msg.text()}`);
+      } else {
+        console.log(`BROWSER LOG: ${msg.text()}`);
+      }
+    });
+
     // 1. Zaloguj się użytkownikiem testowym
     await loginPage.goto();
     await loginPage.login(userEmail, userPassword);
