@@ -37,7 +37,19 @@ export class ProjectDetailsPage {
         (response.status() === 200 || response.status() === 201)
     );
 
+    // Set a marker to detect page reload
+    await this.page.evaluate(() => ((window as any).__test_marker = true));
+
     await this.addTaskBtn.click();
+
+    // Check if page reloaded
+    const marker = await this.page.evaluate(() => (window as any).__test_marker);
+    if (!marker) {
+      // eslint-disable-next-line no-console
+      console.log("PAGE RELOAD DETECTED");
+      throw new Error("Page reloaded unexpectedly during addTask");
+    }
+
     const taskItem = this.getTaskItem(title);
     await expect(taskItem).toBeVisible();
 
