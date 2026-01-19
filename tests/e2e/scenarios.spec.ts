@@ -27,7 +27,7 @@ test.describe("Główny scenariusz aplikacji", () => {
     // 1. Zaloguj się użytkownikiem testowym
     await loginPage.goto();
     await loginPage.login(userEmail, userPassword);
-    await expect(page).toHaveURL("/projects");
+    // login() already waits for /projects URL
 
     // 2. Utwórz nowy projekt o nazwie "Projekt Testowy"
     await projectsPage.createProject(projectName, "Opis dla projektu testowego");

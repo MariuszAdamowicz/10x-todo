@@ -19,9 +19,16 @@ export class LoginPage {
 
   async login(email: string, password: string) {
     await this.emailInput.click();
-    await this.emailInput.fill(email);
+    await this.emailInput.pressSequentially(email, { delay: 50 });
     await this.passwordInput.click();
-    await this.passwordInput.fill(password);
+    await this.passwordInput.pressSequentially(password, { delay: 50 });
+
+    const responsePromise = this.page.waitForResponse(
+      (response) => response.url().includes("/api/auth/login") && response.request().method() === "POST"
+    );
+
     await this.submitBtn.click();
+    await responsePromise;
+    await this.page.waitForURL(/\/projects/, { timeout: 10000 });
   }
 }
