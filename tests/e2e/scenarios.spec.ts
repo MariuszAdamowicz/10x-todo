@@ -6,8 +6,11 @@ import { ProjectSettingsPage } from "./pages/ProjectSettingsPage";
 import { SharedComponents } from "./pages/SharedComponents";
 
 // Use dedicated E2E user to avoid rate limiting on signup (2 emails/hour)
-const userEmail = process.env.E2E_USERNAME!;
-const userPassword = process.env.E2E_PASSWORD!;
+if (!process.env.E2E_USERNAME || !process.env.E2E_PASSWORD) {
+  throw new Error("E2E_USERNAME and E2E_PASSWORD must be set in .env.test");
+}
+const userEmail = process.env.E2E_USERNAME;
+const userPassword = process.env.E2E_PASSWORD;
 const projectName = "Projekt Testowy";
 
 test.describe("Główny scenariusz aplikacji", () => {

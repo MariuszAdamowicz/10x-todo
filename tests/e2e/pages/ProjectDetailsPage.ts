@@ -27,7 +27,7 @@ export class ProjectDetailsPage {
   async addTask(title: string) {
     await this.newTaskInput.clear();
     await this.newTaskInput.pressSequentially(title, { delay: 50 });
-    
+
     // Wait for React to update and enable the button
     await expect(this.addTaskBtn).toBeEnabled({ timeout: 5000 });
 
