@@ -41,8 +41,8 @@ export class ProjectDetailsPage {
     );
 
     await this.newTaskInput.press("Enter");
-    await expect(this.getTaskItem(title)).toBeVisible();
     await responsePromise;
+    await expect(this.getTaskItem(title)).toBeVisible({ timeout: 5000 });
   }
 
   async openTask(title: string) {
