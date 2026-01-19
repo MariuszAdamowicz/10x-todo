@@ -1,8 +1,14 @@
 import { defineConfig, devices } from "@playwright/test";
 import dotenv from "dotenv";
 import path from "path";
+import fs from "fs";
 
-dotenv.config({ path: path.resolve(process.cwd(), ".env.test") });
+// Only load .env.test if it exists and has content
+const envTestPath = path.resolve(process.cwd(), ".env.test");
+if (fs.existsSync(envTestPath)) {
+  dotenv.config({ path: envTestPath });
+}
+// Otherwise, environment variables from CI will be used
 
 // See https://playwright.dev/docs/test-configuration.
 export default defineConfig({
@@ -42,5 +48,6 @@ export default defineConfig({
     command: "npm run dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
+    env: process.env,
   },
 });
