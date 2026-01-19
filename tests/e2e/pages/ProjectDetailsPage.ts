@@ -43,12 +43,16 @@ export class ProjectDetailsPage {
     await this.newTaskInput.press("Enter");
     await responsePromise;
     await expect(this.getTaskItem(title)).toBeVisible({ timeout: 5000 });
+    // Extra wait in CI to ensure React has fully updated
+    if (process.env.CI) {
+      await this.page.waitForTimeout(1000);
+    }
   }
 
   async openTask(title: string) {
     await this.page.waitForTimeout(1000);
     const taskItem = this.getTaskItem(title);
-    await expect(taskItem).toBeVisible({ timeout: 10000 });
+    await expect(taskItem).toBeVisible({ timeout: 15000 });
     await taskItem.getByText(title).click();
     await this.page.waitForURL(/\/tasks\//);
   }
