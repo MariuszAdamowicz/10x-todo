@@ -25,13 +25,11 @@ export class ProjectDetailsPage {
   }
 
   async addTask(title: string) {
-    await this.newTaskInput.fill(title);
-
-    try {
-      await expect(this.addTaskBtn).toBeEnabled({ timeout: 2000 });
-    } catch {
-      return "";
-    }
+    await this.newTaskInput.clear();
+    await this.newTaskInput.pressSequentially(title, { delay: 50 });
+    
+    // Wait for React to update and enable the button
+    await expect(this.addTaskBtn).toBeEnabled({ timeout: 5000 });
 
     const responsePromise = this.page.waitForResponse(
       (response) =>
@@ -40,19 +38,14 @@ export class ProjectDetailsPage {
         (response.status() === 200 || response.status() === 201)
     );
 
-    await this.newTaskInput.press("Enter");
+    await this.addTaskBtn.click();
     await responsePromise;
     await expect(this.getTaskItem(title)).toBeVisible({ timeout: 5000 });
-    // Extra wait in CI to ensure React has fully updated
-    if (process.env.CI) {
-      await this.page.waitForTimeout(1000);
-    }
   }
 
   async openTask(title: string) {
-    await this.page.waitForTimeout(1000);
     const taskItem = this.getTaskItem(title);
-    await expect(taskItem).toBeVisible({ timeout: 15000 });
+    await expect(taskItem).toBeVisible({ timeout: 10000 });
     await taskItem.getByText(title).click();
     await this.page.waitForURL(/\/tasks\//);
   }

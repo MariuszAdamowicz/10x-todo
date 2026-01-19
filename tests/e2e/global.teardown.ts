@@ -45,39 +45,23 @@ teardown("cleanup database", async () => {
 
     console.log(`Found ${users.length} users in database.`);
 
-    // 2. Identify users to delete
-    // SAFETY CHECK: STRICTLY only delete users created by the test suite (test-user-TIMESTAMP@example.com)
-    // NEVER delete users based on an exclusion list (allowlist) as it is too risky.
-    const usersToDelete = users.filter(
-      (user) => user.email && user.email.startsWith("test-user-") && user.email.endsWith("@example.com")
-    );
+    // 2. Find dedicated E2E test user
+    const E2E_USERNAME = process.env.E2E_USERNAME;
+    const e2eUser = users.find((user) => user.email === E2E_USERNAME);
 
-    if (usersToDelete.length === 0) {
-      console.log("✅ No test users found to cleanup.");
+    if (!e2eUser) {
+      console.log(`⚠️  E2E user ${E2E_USERNAME} not found. Nothing to clean.`);
     } else {
-      console.log(`🗑️  Found ${usersToDelete.length} users to delete.`);
-      const userIdsToDelete = usersToDelete.map((u) => u.id);
+      console.log(`🧹 Cleaning test data for E2E user: ${E2E_USERNAME}`);
 
-      // 3. Cleanup data (Projects)
-      const { error: deleteProjectsError } = await supabase.from("projects").delete().in("user_id", userIdsToDelete);
+      // 3. Delete all projects (CASCADE will delete tasks)
+      const { error: deleteProjectsError } = await supabase.from("projects").delete().eq("user_id", e2eUser.id);
 
       if (deleteProjectsError) {
         console.error("⚠️  Error deleting projects:", deleteProjectsError);
       } else {
-        console.log("✅ Deleted projects for test users.");
+        console.log("✅ Deleted all projects for E2E user.");
       }
-
-      // 4. Delete users
-      let deletedCount = 0;
-      for (const user of usersToDelete) {
-        const { error: deleteUserError } = await supabase.auth.admin.deleteUser(user.id);
-        if (deleteUserError) {
-          console.error(`❌ Failed to delete user ${user.email}:`, deleteUserError);
-        } else {
-          deletedCount++;
-        }
-      }
-      console.log(`✅ Successfully deleted ${deletedCount} users.`);
     }
   } catch (error) {
     console.error("❌ Global teardown exception:", error);

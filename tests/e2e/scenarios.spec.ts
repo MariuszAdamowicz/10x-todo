@@ -5,26 +5,13 @@ import { ProjectDetailsPage } from "./pages/ProjectDetailsPage";
 import { ProjectSettingsPage } from "./pages/ProjectSettingsPage";
 import { SharedComponents } from "./pages/SharedComponents";
 
-const timestamp = Date.now();
-const userEmail = `test-user-${timestamp}@example.com`;
-const userPassword = "password123";
+// Use dedicated E2E user to avoid rate limiting on signup (2 emails/hour)
+const userEmail = process.env.E2E_USERNAME!;
+const userPassword = process.env.E2E_PASSWORD!;
 const projectName = "Projekt Testowy";
 
 test.describe("Główny scenariusz aplikacji", () => {
-  // Setup: Register a new user before running the test
-  test.beforeAll(async ({ browser }) => {
-    const page = await browser.newPage();
-    await page.goto("/register");
-    await page.getByLabel("Email").fill(userEmail);
-    await page.getByLabel("Password", { exact: true }).fill(userPassword);
-    await page.getByLabel("Confirm Password").fill(userPassword);
-    await page.getByRole("button", { name: "Register" }).click();
-
-    // Wait for redirect to projects or login
-    await page.waitForURL(/\/projects|\/login/);
-
-    await page.close();
-  });
+  // No beforeAll needed - test will login directly
 
   test("Pełny przepływ: Logowanie -> Projekt -> Zadania -> Ustawienia", async ({ page }) => {
     test.setTimeout(60000); // Increase timeout for this long scenario
