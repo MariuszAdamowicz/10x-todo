@@ -62,3 +62,27 @@ export const proposeTaskResolutionTool = {
     };
   },
 };
+
+export const reorderTasksTool = {
+  name: "reorder_tasks",
+  description: "Reorders a list of tasks. Use this to prioritize subtasks or organize the task list logically.",
+  inputSchema: z.object({
+    tasks: z.array(
+      z.object({
+        id: z.string().uuid().describe("The UUID of the task"),
+        order: z.number().int().min(0).describe("The new position order (0-based)"),
+      })
+    ).describe("List of tasks with their new order"),
+  }),
+  execute: async (args: { tasks: { id: string; order: number }[] }) => {
+    const result = await apiClient.reorderTasks(args.tasks);
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  },
+};

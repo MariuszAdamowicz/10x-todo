@@ -117,6 +117,13 @@ export class ApiClient {
           body: JSON.stringify({ new_status_id: statusId, comment })
       });
   }
+
+  async reorderTasks(tasks: { id: string; order: number }[]): Promise<any> {
+      return this.safeFetch("/api/tasks/reorder", {
+          method: "POST",
+          body: JSON.stringify({ tasks })
+      });
+  }
 }
 
 export const apiClient = new ApiClient();
