@@ -9,8 +9,7 @@ export const prerender = false;
 
 export async function POST({ params, request, locals }: APIContext): Promise<Response> {
   const { id: taskId } = params;
-  const { supabase, user } = locals;
-  const { projectId: aiProjectId } = user || {};
+  const { supabase, aiProjectId } = locals;
 
   if (!taskId) {
     return new Response(JSON.stringify({ message: "Task ID is required." }), { status: 400 });
