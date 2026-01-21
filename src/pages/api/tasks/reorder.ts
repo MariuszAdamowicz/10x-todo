@@ -3,12 +3,16 @@ import type { APIRoute } from "astro";
 import { ReorderTasksDtoSchema } from "@/lib/schemas/task.schemas";
 import { TaskService } from "@/lib/services/task.service";
 import { createSupabaseServer } from "@/db/supabase.client";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/db/database.types";
 import { AuthorizationError, InvalidStateError, TaskNotFoundError } from "@/lib/errors";
 
 export const prerender = false;
 
 export const POST: APIRoute = async ({ request, locals, cookies }) => {
-  const { user } = locals;
+  const { user, aiProjectId } = locals;
+  
+  // Basic auth check - middleware ensures 'user' is present if logged in or API key is valid
   if (!user) {
     return new Response(JSON.stringify({ message: "Unauthorized" }), { status: 401 });
   }
@@ -29,11 +33,25 @@ export const POST: APIRoute = async ({ request, locals, cookies }) => {
     }
 
     const validatedBody = validation.data;
-    const supabase = createSupabaseServer({ cookies, headers: request.headers });
+    
+    let taskService: TaskService;
 
-    // 2. Call the service to reorder tasks
-    const taskService = new TaskService(supabase);
-    await taskService.reorderTasks(user.id, validatedBody);
+    // 2. Initialize Service with appropriate client
+    if (aiProjectId) {
+        // AI Context: Use Service Role client to bypass RLS/Auth role restrictions for RPC
+        const supabaseAdmin = createClient<Database>(
+            import.meta.env.SUPABASE_URL,
+            import.meta.env.SUPABASE_SERVICE_ROLE_KEY
+        );
+        taskService = new TaskService(supabaseAdmin);
+    } else {
+        // User Context: Use standard RLS-scoped client
+        const supabase = createSupabaseServer({ cookies, headers: request.headers });
+        taskService = new TaskService(supabase);
+    }
+
+    // 3. Call the service to reorder tasks
+    await taskService.reorderTasks(validatedBody, { userId: user.id, aiProjectId });
 
     return new Response(null, { status: 204 });
   } catch (error) {
