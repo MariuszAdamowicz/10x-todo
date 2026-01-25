@@ -51,6 +51,8 @@ jobs:
     needs: [lint, unit-test]
     runs-on: ubuntu-latest
     environment: production
+    outputs:
+      deployment-url: ${{ steps.deploy-pages.outputs.deployment-url }}
     env:
       SUPABASE_URL: ${{ vars.SUPABASE_URL }}
       SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
@@ -72,6 +74,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Deploy to Cloudflare Pages
+        id: deploy-pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -83,6 +86,8 @@ jobs:
     needs: [lint, unit-test]
     runs-on: ubuntu-latest
     environment: production
+    outputs:
+      deployment-url: ${{ steps.deploy-worker.outputs.deployment-url }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -91,6 +96,7 @@ jobs:
         uses: ./.github/actions/setup
 
       - name: Deploy MCP Worker
+        id: deploy-worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -104,15 +110,17 @@ jobs:
   summary:
     name: Deployment Summary
     needs: [deploy, deploy-mcp]
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Display URLs
         run: |
-          echo "## 🚀 Deployment Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 Deployment Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Service | URL |" >> $GITHUB_STEP_SUMMARY
-          echo "| :--- | :--- |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Frontend App** | https://10x-todo.pages.dev |" >> $GITHUB_STEP_SUMMARY
-          echo "| **MCP Server** | https://10x-todo-mcp.${{ vars.CLOUDFLARE_SUBDOMAIN || 'mariuszadamowicz' }}.workers.dev/sse |" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Status | URL |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Frontend App** | ${{ needs.deploy.result }} | ${{ needs.deploy.outputs.deployment-url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **MCP Server** | ${{ needs.deploy-mcp.result }} | ${{ needs.deploy-mcp.outputs.deployment-url }}/sse |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "> **Note:** Remember to configure your \`TODO_API_KEY\` in the Cloudflare Worker settings for MCP to work correctly." >> $GITHUB_STEP_SUMMARY
+          echo "> **Note:** The MCP Server URL above is your public endpoint for Cursor/Claude. Ensure 
+TODO_API_KEY" is set in the Worker secrets."
