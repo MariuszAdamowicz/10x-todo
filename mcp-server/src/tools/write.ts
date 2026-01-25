@@ -24,10 +24,10 @@ export const createSubtaskTool = {
 
 export const updateSubtaskStatusTool = {
   name: "update_subtask_status",
-  description: "Updates the status of a subtask. Allowed statuses are: todo, in_progress, done, cancelled.",
+  description: "Updates the status of a subtask. Allowed statuses are: todo, done, cancelled.",
   inputSchema: z.object({
     taskId: z.string().uuid().describe("The UUID of the task to update"),
-    status: z.enum(['todo', 'in_progress', 'done', 'cancelled']).describe("The new status"),
+    status: z.enum(['todo', 'done', 'cancelled']).describe("The new status"),
   }),
   execute: async (args: { taskId: string; status: string }) => {
     const result = await apiClient.updateSubtaskStatus(args.taskId, args.status);

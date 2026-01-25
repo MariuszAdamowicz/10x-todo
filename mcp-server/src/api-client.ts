@@ -69,31 +69,15 @@ export class ApiClient {
   }
 
   async updateSubtaskStatus(taskId: string, status: string): Promise<any> {
-       // Map string status to ID (This logic might need to be more robust or fetched from API)
-       // For now, assuming standard IDs or that the API accepts string statuses if implemented,
-       // BUT the DTO says status_id is number.
-       // We need to know the status IDs.
-       // Hardcoding for now based on typical setup, or we need an endpoint to get statuses.
-       // Let's assume the API might handle conversion or we need to fetch statuses first.
-       // The plan says: PATCH /api/tasks/{taskId} with { status }
-       // But the DB schema has status_id.
-       // Let's implement a helper to map status names to IDs if needed, or assume the API handles it.
-       // Checking `patch-tasks-id-endpoint-implementation-plan.md` might clarify.
-       // For this step, I'll send what the tool receives, but the tool definition in plan says "status: enum".
-       // The API likely expects `status_id`.
-       // I'll leave a TODO here to resolve status mapping.
-       
-       // Temporary mapping based on seed data or common sense
        const statusMap: Record<string, number> = {
            'todo': 1,
-           'in_progress': 2,
-           'done': 3,
-           'cancelled': 4
+           'done': 2,
+           'cancelled': 3
        };
        
        const statusId = statusMap[status];
        if (!statusId) {
-           throw new Error(`Invalid status: ${status}`);
+           throw new Error(`Invalid status: ${status}. Available statuses: todo, done, cancelled.`);
        }
 
        return this.safeFetch(`/api/tasks/${taskId}`, {
@@ -104,12 +88,12 @@ export class ApiClient {
 
   async proposeTaskResolution(taskId: string, status: string, comment: string): Promise<any> {
        const statusMap: Record<string, number> = {
-           'done': 3,
-           'cancelled': 4
+           'done': 2,
+           'cancelled': 3
        };
         const statusId = statusMap[status];
        if (!statusId) {
-           throw new Error(`Invalid status for proposal: ${status}`);
+           throw new Error(`Invalid status for proposal: ${status}. Available: done, cancelled.`);
        }
 
       return this.safeFetch(`/api/tasks/${taskId}/propose-status`, {

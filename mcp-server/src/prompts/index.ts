@@ -52,7 +52,6 @@ Determine the type of the Atomic Task and execute the transition:
 - **Action:** Define the specification.
 - **MCP:** Call \`create_subtask(parentId, "RED: Write test for [Task]")\`.
 - **MCP:** Call \`reorder_tasks\` (Put RED at the top).
-- **Status:** You may mark the Generic Task as 'in_progress'.
 - **STOP.**
 
 **CASE B: "RED" TASK** (e.g., "RED: Write test for Login")
@@ -86,6 +85,7 @@ Determine the type of the Atomic Task and execute the transition:
 
 ### 📝 GUIDELINES
 - **Single Transition Per Turn:** Do not try to do Red, Green, and Refactor in one response. Do Red, update MCP, then stop. The next turn will handle Green.
+- **NO "IN_PROGRESS" STATE:** The system only supports 'todo', 'done', and 'cancelled'. Skip any 'in_progress' steps.
 - **Strict Naming:** Always use "RED:", "GREEN:", "REFACTOR:" prefixes for subtasks.
 - **Reorder Always:** Never skip \`reorder_tasks\`. The list must always reflect the Priority Rules.
 `,
