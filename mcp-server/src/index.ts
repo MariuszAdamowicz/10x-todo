@@ -12,17 +12,15 @@ const app = new Hono();
 app.use("*", cors());
 
 // Map to store active transports by session ID
+// NOTE: On Cloudflare Workers, this relies on isolate reuse.
 const activeSessions = new Map<string, SSEServerTransport>();
 
 app.get("/sse", async (c) => {
-  // Extract config from query params OR Cloudflare env
-
   const configSource = {
     TODO_API_URL:
       c.req.query("TODO_API_URL") ||
       c.req.query("apiUrl") ||
       (c.env as Record<string, string | undefined>)?.TODO_API_URL,
-
     TODO_API_KEY:
       c.req.query("TODO_API_KEY") ||
       c.req.query("apiKey") ||
@@ -30,57 +28,86 @@ app.get("/sse", async (c) => {
   };
 
   const config = validateConfig(configSource);
-
   const apiClient = new ApiClient(config);
-
   const server = new McpServer({
     name: "10x-todo-mcp",
-
     version: "1.0.0",
   });
 
-  // Register tools/resources with the specific apiClient for this session
-
   getTools(apiClient).forEach((tool) => server.tool(tool.name, tool.description, tool.inputSchema.shape, tool.execute));
-
   getResources(apiClient).forEach((res) =>
     server.resource(res.name, res.uri, async () => ({ contents: await res.read() }))
   );
-
   prompts.forEach((p) =>
     server.prompt(
       p.name,
-
       p.description,
-
       // @ts-expect-error - SDK mismatch
-
       async () => ({ messages: p.messages })
     )
   );
 
   const sessionId = crypto.randomUUID();
 
-  // Using a custom endpoint for messages that includes the session ID
+  // Create a bridge between Web Streams and Node-like response expected by the SDK
+  const { readable, writable } = new TransformStream();
+  const writer = writable.getWriter();
+  const encoder = new TextEncoder();
 
-  const transport = new SSEServerTransport("/message?sessionId=${sessionId}", c.res as unknown as Response);
+  const responseBridge = {
+    writeHead: () => {
+      /* noop */
+    },
+    write: (chunk: unknown) => writer.write(encoder.encode(typeof chunk === "string" ? chunk : JSON.stringify(chunk))),
+    end: () => writer.close(),
+    on: () => {
+      /* noop */
+    },
+    once: () => {
+      /* noop */
+    },
+    removeListener: () => {
+      /* noop */
+    },
+    emit: () => true,
+  };
+
+  // FIX: Use backticks for template string
+  const transport = new SSEServerTransport(`/message?sessionId=${sessionId}`, responseBridge as unknown as Response);
 
   activeSessions.set(sessionId, transport);
-  transport.onclose = () => activeSessions.delete(sessionId);
+  transport.onclose = () => {
+    activeSessions.delete(sessionId);
+    writer.close();
+  };
 
   await server.connect(transport);
-  return c.res;
+
+  return new Response(readable, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
 });
 
 app.post("/message", async (c) => {
   const sessionId = c.req.query("sessionId");
   const transport = sessionId ? activeSessions.get(sessionId) : null;
 
-  if (!transport) return c.text("Session not found", 404);
+  if (!transport) {
+    return c.text(`Session ${sessionId} not found. Isolate might have been recycled.`, 404);
+  }
 
-  // @ts-expect-error - Hono request type mismatch
-  await transport.handlePostMessage(c.req.raw, c.res);
-  return c.text("OK");
+  try {
+    const body = await c.req.json();
+    // @ts-expect-error - Hono request type mismatch
+    await transport.handlePostMessage(body, c.res as unknown as Response);
+    return c.text("OK");
+  } catch (error) {
+    return c.text(String(error), 500);
+  }
 });
 
 export default app;
