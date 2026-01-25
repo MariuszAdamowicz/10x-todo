@@ -1,7 +1,7 @@
-import { apiClient } from "../api-client.js";
+import type { ApiClient } from "../api-client.js";
 
 // We define resources as an array of configuration objects to be registered in index.ts
-export const resources = [
+export const getResources = (apiClient: ApiClient) => [
   {
     uri: "todo://tasks/delegated",
     name: "Delegated Tasks",

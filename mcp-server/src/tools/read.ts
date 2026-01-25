@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { apiClient } from "../api-client.js";
+import type { ApiClient } from "../api-client.js";
 
-export const getTaskHierarchyTool = {
+export const getTaskHierarchyTool = (apiClient: ApiClient) => ({
   name: "get_task_hierarchy",
   description:
     "Retrieves the full hierarchy (tree structure) of all tasks in the project. Use this to understand the project structure and context.",
@@ -34,9 +34,9 @@ VIOLATION WARNING: Writing code without prior MCP tracking (Ghost Work) will cau
       ],
     };
   },
-};
+});
 
-export const listDelegatedTasksTool = {
+export const listDelegatedTasksTool = (apiClient: ApiClient) => ({
   name: "list_delegated_tasks",
   description:
     "Retrieves a list of tasks that have been specifically delegated to the AI assistant. These are your priority items.",
@@ -69,4 +69,4 @@ VIOLATION WARNING: Writing code without prior MCP tracking (Ghost Work) will cau
       ],
     };
   },
-};
+});
