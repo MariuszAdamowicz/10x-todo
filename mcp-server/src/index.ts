@@ -16,24 +16,14 @@ interface Bindings {
 const app = new Hono<{ Bindings: Bindings }>();
 app.use("*", cors());
 
-// Health check and diagnostic route
-app.get("/", (c) => {
-  return c.json({
-    status: "online",
-    service: "10x-todo-mcp",
-    env: {
-      has_url: !!c.env.TODO_API_URL,
-      has_key: !!c.env.TODO_API_KEY,
-    },
-  });
-});
+// Health check
+app.get("/", (c) => c.text("10x-Todo MCP Server is Online. Use /sse to connect."));
 
-// Map to store active transports by session ID
-// NOTE: On Cloudflare Workers without Durable Objects, this depends on isolate reuse.
+// In-memory store for active transports
 const activeSessions = new Map<string, SSEServerTransport>();
 
 app.get("/sse", async (c) => {
-  // Extract config from query params OR Cloudflare env
+  // Extract configuration from query params (passed by client)
   const configSource = {
     TODO_API_URL:
       c.req.query("TODO_API_URL") ||
@@ -47,13 +37,12 @@ app.get("/sse", async (c) => {
 
   const config = validateConfig(configSource);
   const apiClient = new ApiClient(config);
-
   const server = new McpServer({
     name: "10x-todo-mcp",
     version: "1.0.0",
   });
 
-  // Register tools/resources with the specific apiClient for this session
+  // Register all tools and resources
   getTools(apiClient).forEach((tool) => server.tool(tool.name, tool.description, tool.inputSchema.shape, tool.execute));
   getResources(apiClient).forEach((res) =>
     server.resource(res.name, res.uri, async () => ({ contents: await res.read() }))
@@ -62,14 +51,15 @@ app.get("/sse", async (c) => {
     server.prompt(
       p.name,
       p.description,
-      // @ts-expect-error - SDK mismatch
+      // @ts-expect-error - SDK version mismatch in types
       async () => ({ messages: p.messages })
     )
   );
 
   const sessionId = crypto.randomUUID();
+  const baseUrl = new URL(c.req.url).origin;
 
-  // Create a bridge between Web Streams and Node-like response expected by the SDK
+  // Bridge Hono response to Web Stream
   const { readable, writable } = new TransformStream();
   const writer = writable.getWriter();
   const encoder = new TextEncoder();
@@ -83,7 +73,11 @@ app.get("/sse", async (c) => {
       writer.write(encoder.encode(text));
     },
     end: () => {
-      writer.close();
+      try {
+        writer.close();
+      } catch {
+        /* already closed */
+      }
     },
     on: () => {
       /* noop */
@@ -97,19 +91,16 @@ app.get("/sse", async (c) => {
     },
   };
 
-  // SSEServerTransport expects a path for POSTing messages.
-  // We include the sessionId in the path to ensure routing works across isolates.
-  const transport = new SSEServerTransport(`/message?sessionId=${sessionId}`, responseBridge as unknown as Response);
+  // We use an absolute URL for the message endpoint to help remote clients
+  const transport = new SSEServerTransport(
+    `${baseUrl}/message?sessionId=${sessionId}`,
+    responseBridge as unknown as Response
+  );
 
   activeSessions.set(sessionId, transport);
-
   transport.onclose = () => {
     activeSessions.delete(sessionId);
-    try {
-      writer.close();
-    } catch {
-      /* already closed */
-    }
+    responseBridge.end();
   };
 
   await server.connect(transport);
@@ -128,14 +119,18 @@ app.post("/message", async (c) => {
   const transport = sessionId ? activeSessions.get(sessionId) : null;
 
   if (!transport) {
-    return c.text(`Session ${sessionId} not found. Ensure you are hitting the same Worker instance.`, 404);
+    return c.text(`Session ${sessionId} not found. Connection may have timed out.`, 404);
   }
 
   try {
     const body = await c.req.json();
-    // @ts-expect-error - Hono request type mismatch
-    await transport.handlePostMessage(body, c.res as unknown as Response);
-    return c.text("OK");
+    // Directly inject the message into the transport bypasssing Node stream emulation
+    // @ts-expect-error - accessing internal handler for Cloudflare compatibility
+    if (transport.onmessage) {
+      // @ts-expect-error - internal SDK call
+      transport.onmessage(body);
+    }
+    return c.text("Accepted");
   } catch (error) {
     return c.text(String(error), 500);
   }

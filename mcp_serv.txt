@@ -1,0 +1,165 @@
+Jak zbudować własny serwer MCP w TypeScript z Cloudflare Workers?
+
+Kiedy mówimy o budowaniu własnego MCP, skupiamy się na implementacji serwera. Klient (np. Cursor) jest już gotowy i będzie komunikował się z naszym serwerem w celu odkrycia i wywołania dostępnych narzędzi.
+
+W ekosystemie Node.js/TypeScript, warto korzystać z wielu szablonów startowych przygotowanych do integracji z infrastrukturą Cloudflare Workers oraz SDK dla TypeScript. Na start polecamy starter remote-mcp-authless (dla serwerów nie wymagających auth, jak w przypadku 10xRules.ai)
+
+W ten sposób otrzymujemy boilerplate niezbędny do stworzenia serwera zgodnego z protokołem MCP, działającego jako Cloudflare Worker. Dzięki temu jesteśmy w stanie zbudować i zdeployować serwer w krótkim czasie.
+
+Z takim setupem utworzyliśmy ai-rules-builder/mcp-server, czyli serwer MCP, który pozwoli Wam korzystać z reguł 10xRules.ai bez opuszczania edytora. 
+
+"10x-rules": {
+      "url": "https://10x-rules-mcp-server.przeprogramowani.workers.dev/mcp"
+},
+
+Więcej informacji znajdziesz w README.md naszego serwera.
+
+W przyszłości planujemy również dodać wsparcie dostępu do Prompt Library, co będzie wymagało przejścia na serwer z autoryzacją.
+
+Definiowanie narzędzi
+
+W naszym podejściu narzędzia definiujemy jako oddzielne obiekty eksportowane z dedykowanego modułu (rulesTools.ts). Każdy obiekt narzędzia zawiera kluczowe informacje:
+
+
+
+
+
+name: Unikalna nazwa identyfikująca narzędzie (np. `listAvailableRules`).
+
+
+
+description: Krótki opis przeznaczenia narzędzia, widoczny dla klienta i modelu.
+
+
+
+inputSchema: Schemat Zod definiujący oczekiwane parametry wejściowe. Dla narzędzi bez parametrów (jak `listAvailableRulesTool`) używamy `z.object({}).optional()`.
+
+
+
+outputSchema: Schemat Zod definiujący strukturę danych zwracanych przez narzędzie.
+
+
+
+execute: Asynchroniczna funkcja zawierająca logikę biznesową narzędzia. Przyjmuje zwalidowane dane wejściowe (jeśli istnieją) i zwraca wynik zgodny z `outputSchema`.
+
+Przykład definicji narzędzia `listAvailableRules`:
+
+export const listAvailableRulesTool = {
+  name: 'listAvailableRules',
+  description: 'Lists available AI library identifiers and their stacks, with instructions on how to get rules.',
+  inputSchema: z.object({}).optional(),
+  outputSchema: listAvailableRulesOutputSchema, // Use the new output schema
+  async execute(): Promise<z.infer<typeof listAvailableRulesOutputSchema>> {
+    const hierarchy = getRuleHierarchy();
+    const availableLibraries = findLibraries(hierarchy);
+
+    const result = {
+        availableLibraries: availableLibraries,
+        reminder: "Use the 'getRuleContent' tool with one of the 'identifier' values (e.g., 'REACT_CODING_STANDARDS') to get specific rules."
+    };
+
+    // Validate the final output structure
+    const validation = listAvailableRulesOutputSchema.safeParse(result);
+    if (!validation.success) {
+        console.error('Output validation failed for listAvailableRules:', validation.error);
+        // Fallback or throw error
+        throw new Error('Internal server error: Failed to prepare available libraries list.');
+    }
+    return validation.data;
+  },
+};
+
+Rejestracja narzędzi w serwerze
+
+Mając zdefiniowane narzędzia, musimy je zarejestrować w instancji serwera MCP. Odbywa się to w głównym pliku serwera (mcp-server/src/index.ts), w metodzie init() klasy MyMCP (rozszerzającej McpAgent z SDK). Używamy metody this.server.tool():
+
+import { McpAgent } from "agents/mcp";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { listAvailableRulesTool, getRuleContentTool } from "./tools/rulesTools";
+import { z } from 'zod';
+
+// Define our MCP agent with tools
+export class MyMCP extends McpAgent {
+	server = new McpServer({
+		name: "MCP Rules Server",
+		version: "1.0.0",
+	});
+
+	async init() {
+		// Register listAvailableRulesTool
+		this.server.tool(
+			listAvailableRulesTool.name,
+            listAvailableRulesTool.description,
+            async () => {
+                const result = await listAvailableRulesTool.execute();
+                return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+            }
+		);
+
+// reszta implementacji
+
+SDK wraz z frameworkiem Cloudflare Workers zajmuje się obsługą żądań HTTP, routingiem do odpowiedniego narzędzia na podstawie toolName z żądania, oraz komunikacją zgodną z protokołem MCP. Naszym zadaniem jest zdefiniowanie logiki narzędzi oraz ich poprawne zarejestrowanie. 
+
+Podczas pracy nad własnym serwerem nieocenionym narzędziem do testowania i debugowania jest MCP Inspector czyli interaktywne narzędzie (aplikacja webowa) pozwalające na połączenie z serwerem MCP i ręczne wywoływanie metod, podgląd komunikatów JSON-RPC, logów itp. 
+
+Możesz je uruchomić lokalnie za pomocą komendy npx @modelcontextprotocol/inspector@latest
+
+Będzie ono dostępne pod adresem http://localhost:6274. Następnie w drugiej sesji terminala odpalamy serwer MCP, np. pod adresem http://localhost:8787. Dzięki temu możemy się z nim połączyć w MCP Inspector:
+
+
+
+To bardzo ułatwia diagnozę problemów – możemy sprawdzić, czy nasz serwer poprawnie zwraca listę tooli, jak wygląda jego odpowiedź, czy obsługuje równoległe żądania itd. 
+
+Wdrożenie serwera MCP 
+
+Wdrożenie serwera MCP zbudowanego na bazie szablonu Cloudflare Workers jest elastyczne i może być dostosowane do różnych struktur projektowych. Omówmy dwa główne scenariusze:
+
+1. Wdrożenie samodzielnego serwera MCP
+
+Jeśli budujesz i wdrażasz tylko serwer MCP (bez powiązanej aplikacji frontendowej), proces jest znacznie prostszy. Zakładamy, że kod serwera znajduje się w dedykowanym repozytorium lub katalogu.
+
+Przygotowanie: Potrzebujesz konta Cloudflare oraz zainstalowanego narzędzia Wrangler CLI, wraz ze skonfigurowanymi sekretami CLOUDFLARE_API_TOKEN i CLOUDFLARE_ACCOUNT_ID w środowisku CI/CD czyli Github Actions. 
+
+Plik konfiguracyjny Wranglera (wrangler.toml lub wrangler.jsonc) w katalogu serwera powinien definiować nazwę workera i plik wejściowy (src/index.ts).
+
+Proces CI/CD (Przykład GitHub Actions): Typowy worfklow  dla samodzielnego serwera powinien wyglądać następująco:
+
+  deploy-mcp-worker:
+    name: Deploy Worker (mcp-server)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc' # Assuming .nvmrc is in the root
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json' # Cache npm deps for root and worker
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Deploy Worker (mcp-server)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_WORKER_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
+
+Wynik: Po pomyślnym wdrożeniu, serwer MCP będzie dostępny pod adresem URL przypisanym przez Cloudflare Workers (nazwa-mcp-servera.twoje-subdomena.workers.dev). Endpointem dla MCP będzie zazwyczaj /sse pod tym adresem (zależnie od konfiguracji w src/index.ts).
+
+
+
+Adres URL możemy znaleźć po wejściu w szczegóły workera i przejściu do zakładki “Settings”:
+
+
+
+2. Wdrożenie Serwera MCP z aplikacją (np. Astro) w monorepo (jak w ai-rules-builder)
+
+W naszym przypadku serwer MCP (mcp-server/) jest częścią większego projektu (monorepo) zawierającego również aplikację frontendową 10xRules.ai zbudowaną w Astro (src/). Proces wdrożenia jest bardziej złożony, ponieważ musimy wdrożyć obie części: aplikację na Cloudflare Pages i serwer MCP na Cloudflare Workers. 
+
+Wykorzystujemy do tego worfklow GitHub Actions zdefiniowany w .github/workflows/deploy-mcp-on-merge.yml.
+
+Niezależnie od tego, czy wdrażasz serwer MCP samodzielnie, czy jako część większej aplikacji w monorepo, kluczowe kroki deploymentu serwera są takie same. Wybór podejścia zależy od specyfiki Twojego projektu.
