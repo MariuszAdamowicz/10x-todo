@@ -107,17 +107,19 @@ jobs:
     steps:
       - name: Display Configuration Pattern
         run: |
-          echo "## 🚀 Deployment Successful!" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🤖 MCP Server Configuration Pattern" >> $GITHUB_STEP_SUMMARY
-          echo "Copy this to your ".gemini/settings.json:":" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "```json" >> $GITHUB_STEP_SUMMARY
-          echo "{"
-          echo "  \"mcpServers\": {"
-          echo "    \"10x-todo\": {"
-          echo "      \"url\": \"${{ needs.deploy-mcp.outputs.deployment-url }}/sse?apiKey=<YOUR_API_KEY>&apiUrl=${{ needs.deploy.outputs.deployment-url }}\""
-          echo "    }"
-          echo "  }"
-          echo "}"
-          echo "```"
+          cat <<EOF >> $GITHUB_STEP_SUMMARY
+          ## 🚀 Deployment Successful!
+
+          ### 🤖 MCP Server Configuration Pattern
+          Copy this to your `.gemini/settings.json`:
+
+          ```json
+          {
+            "mcpServers": {
+              "10x-todo": {
+                "url": "${{ needs.deploy-mcp.outputs.deployment-url }}/sse?apiKey=<YOUR_API_KEY>&apiUrl=${{ needs.deploy.outputs.deployment-url }}"
+              }
+            }
+          }
+          ```
+          EOF
