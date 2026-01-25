@@ -22,14 +22,16 @@ prompts.forEach((p) => server.prompt(p.name, p.description, async () => ({ messa
 let transport: SSEServerTransport | null = null;
 
 app.get("/sse", async (c) => {
-  transport = new SSEServerTransport("/message", c.res as any);
+  // @ts-expect-error - Hono response type mismatch with MCP SDK expectation
+  transport = new SSEServerTransport("/message", c.res);
   await server.connect(transport);
   return c.res;
 });
 
 app.post("/message", async (c) => {
   if (!transport) return c.text("No active session", 400);
-  await transport.handlePostMessage(c.req.raw as any, c.res as any);
+  // @ts-expect-error - Hono request type mismatch with MCP SDK expectation
+  await transport.handlePostMessage(c.req.raw, c.res);
   return c.text("OK");
 });
 
