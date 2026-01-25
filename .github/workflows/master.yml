@@ -107,7 +107,19 @@ jobs:
     steps:
       - name: Display Configuration Pattern
         run: |
-          cat >> $GITHUB_STEP_SUMMARY <<'EOF'
+          # URL Encode function
+          urlencode() {
+            python3 -c "import urllib.parse; print(python3.urllib.parse.quote(input()))" 2>/dev/null || \
+            python3 -c "import sys, urllib.parse; print(urllib.parse.quote(sys.stdin.read().strip()))"
+          }
+
+          FRONTEND_URL="${{ needs.deploy.outputs.deployment-url }}"
+          MCP_BASE_URL="${{ needs.deploy-mcp.outputs.deployment-url }}"
+
+          # Construct the encoded URL
+          ENCODED_API_URL=$(echo "$FRONTEND_URL" | python3 -c "import sys, urllib.parse; print(urllib.parse.quote(sys.stdin.read().strip()))")
+
+          cat >> $GITHUB_STEP_SUMMARY <<EOF
           ## 🚀 Deployment Successful!
 
           ### 🤖 MCP Server Configuration Pattern
@@ -117,9 +129,11 @@ jobs:
           {
             "mcpServers": {
               "10x-todo": {
-                "url": "${{ needs.deploy-mcp.outputs.deployment-url }}/sse?apiKey=<YOUR_API_KEY>&apiUrl=${{ needs.deploy.outputs.deployment-url }}"
+                "url": "$MCP_BASE_URL/sse?apiKey=<YOUR_API_KEY>&apiUrl=$ENCODED_API_URL"
               }
             }
           }
           ```
+
+          > **Note:** The `apiUrl` has been URL-encoded for safety. Replace `<YOUR_API_KEY>` with your project's API key.
           EOF

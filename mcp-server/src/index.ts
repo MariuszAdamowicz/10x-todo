@@ -62,6 +62,7 @@ app.get("/sse", async (c) => {
   );
 
   const sessionId = crypto.randomUUID();
+  const baseUrl = new URL(c.req.url).origin;
 
   // Create a bridge between Web Streams and Node-like response expected by the SDK
   const { readable, writable } = new TransformStream();
@@ -86,13 +87,13 @@ app.get("/sse", async (c) => {
     emit: () => true,
   };
 
-  // We use a path that the client will POST to.
-  // The SDK will provide this URL to the client in the first SSE message.
-  const transport = new SSEServerTransport("/message", responseBridge as unknown as Response);
+  // We use an ABSOLUTE path that the client will POST to.
+  // This is safer for remote clients like Cursor.
+  const transport = new SSEServerTransport(`${baseUrl}/message`, responseBridge as unknown as Response);
 
-  // We need to hack the transport a bit to include the sessionId in the URL it sends to the client
-  // @ts-expect-error - overriding internal property to include session ID
-  transport._endpoint = `/message?sessionId=${sessionId}`;
+  // Override the endpoint to include the sessionId in the absolute URL
+  // @ts-expect-error - overriding internal property to include session ID and make it absolute
+  transport._endpoint = `${baseUrl}/message?sessionId=${sessionId}`;
 
   activeSessions.set(sessionId, transport);
   transport.onclose = () => {
