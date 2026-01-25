@@ -1,53 +1,36 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { config } from "./config.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { tools } from "./tools/index.js";
 import { resources } from "./resources/index.js";
 import { prompts } from "./prompts/index.js";
 
-// Initialize MCP Server
+const app = new Hono();
+app.use("*", cors());
+
 const server = new McpServer({
   name: "10x-todo-mcp",
   version: "1.0.0",
 });
 
-// Register Tools
-tools.forEach((tool) => {
-  server.tool(tool.name, tool.description, tool.inputSchema.shape, tool.execute);
-});
+// Register MCP elements
+tools.forEach((tool) => server.tool(tool.name, tool.description, tool.inputSchema.shape, tool.execute));
+resources.forEach((res) => server.resource(res.name, res.uri, async () => ({ contents: await res.read() })));
+prompts.forEach((p) => server.prompt(p.name, p.description, async () => ({ messages: p.messages })));
 
-// Register Resources
-resources.forEach((resource) => {
-  server.resource(resource.name, resource.uri, async () => ({
-    contents: await resource.read(),
-  }));
-});
+let transport: SSEServerTransport | null = null;
 
-// Register Prompts
-prompts.forEach((prompt) => {
-  server.prompt(
-    prompt.name,
-    prompt.description,
-    // @ts-expect-error - The SDK types might be slightly strict or mismatching for static messages,
-    async () => ({
-      messages: prompt.messages,
-    })
-  );
-});
-
-// Helper for error handling
-process.on("SIGINT", async () => {
-  await server.close();
-  process.exit(0);
-});
-
-async function main() {
-  const transport = new StdioServerTransport();
+app.get("/sse", async (c) => {
+  transport = new SSEServerTransport("/message", c.res as any);
   await server.connect(transport);
-  console.error(`10x-Todo MCP Server running on stdio. API URL: ${config.TODO_API_URL}`);
-}
-
-main().catch((error) => {
-  console.error("Fatal error in main loop:", error);
-  process.exit(1);
+  return c.res;
 });
+
+app.post("/message", async (c) => {
+  if (!transport) return c.text("No active session", 400);
+  await transport.handlePostMessage(c.req.raw as any, c.res as any);
+  return c.text("OK");
+});
+
+export default app;
