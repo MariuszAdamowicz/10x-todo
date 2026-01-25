@@ -32,7 +32,7 @@ export const POST: APIRoute = async (context) => {
   }
 
   const taskId = safeParams.data.id;
-  const supabase = createSupabaseServer({ cookies, headers: request.headers });
+  const supabase = createSupabaseServer({ cookies, headers: request.headers, locals });
 
   try {
     const taskService = new TaskService(supabase);

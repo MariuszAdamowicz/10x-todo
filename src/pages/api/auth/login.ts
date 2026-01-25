@@ -4,7 +4,7 @@ import { LoginSchema } from "@/lib/schemas/auth.schemas";
 
 export const prerender = false;
 
-export const POST: APIRoute = async ({ request, cookies }) => {
+export const POST: APIRoute = async ({ request, cookies, locals }) => {
   const body = await request.json();
   const validation = LoginSchema.safeParse(body);
 
@@ -13,7 +13,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   }
 
   const { email, password } = validation.data;
-  const supabase = createSupabaseServer({ cookies, headers: request.headers });
+  const supabase = createSupabaseServer({ cookies, headers: request.headers, locals });
 
   const { error } = await supabase.auth.signInWithPassword({
     email,

@@ -22,7 +22,11 @@ if (!projectId) {
   return Astro.redirect("/projects");
 }
 
-const supabase = createSupabaseServer({ cookies: Astro.cookies, headers: Astro.request.headers });
+const supabase = createSupabaseServer({
+  cookies: Astro.cookies,
+  headers: Astro.request.headers,
+  locals: Astro.locals,
+});
 const projectService = new ProjectService(supabase);
 const taskService = new TaskService(supabase);
 

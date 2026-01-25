@@ -1,0 +1,147 @@
+name: Production Deployment
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - cloudflare_deployment
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup and Install
+        uses: ./.github/actions/setup
+
+      - name: Run Lint
+        run: npm run lint
+
+  unit-test:
+    name: Unit Tests
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup and Install
+        uses: ./.github/actions/setup
+
+      - name: Run Unit Tests
+        run: npm run test:unit -- --coverage
+
+  deploy:
+    name: Deploy to Cloudflare Pages
+    needs: [lint, unit-test]
+    runs-on: ubuntu-latest
+    environment: production
+    outputs:
+      deployment-url: ${{ steps.deploy-pages.outputs.deployment-url }}
+    env:
+      SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup and Install
+        uses: ./.github/actions/setup
+
+      - name: Build Project
+        run: npm run build
+
+      - name: Create Cloudflare Pages project if missing
+        run: npx wrangler pages project create 10x-todo --production-branch main || true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Deploy to Cloudflare Pages
+        id: deploy-pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist
+
+  deploy-mcp:
+    name: Deploy MCP Server
+    needs: [lint, unit-test]
+    runs-on: ubuntu-latest
+    environment: production
+    outputs:
+      deployment-url: ${{ steps.deploy-worker.outputs.deployment-url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup and Install
+        uses: ./.github/actions/setup
+
+      - name: Deploy MCP Worker
+        id: deploy-worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: mcp-server
+          command: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+  summary:
+    name: Deployment Summary
+    needs: [deploy, deploy-mcp]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Summary
+        env:
+          FRONT_URL: ${{ needs.deploy.outputs.deployment-url }}
+          MCP_URL: ${{ needs.deploy-mcp.outputs.deployment-url }}
+        run: |
+          python3 - <<'EOF'
+          import os
+          import base64
+
+          front_url = os.environ.get('FRONT_URL', 'N/A')
+          mcp_url = os.environ.get('MCP_URL', 'N/A')
+
+          # Encode the frontend URL to Base64 for a clean path
+          encoded_api_url = base64.b64encode(front_url.encode()).decode() if front_url != 'N/A' else 'N/A'
+
+          summary = f"""
+          ## 🚀 Deployment Successful!
+
+          ### 🌐 Frontend Application
+          - **URL:** {front_url}
+
+          ### 🤖 MCP Server Configuration
+          Copy this to your `.gemini/settings.json` or Cursor settings:
+
+          ```json
+          {{
+            "mcpServers": {{
+              "10x-todo": {{
+                "url": "{mcp_url}/mcp/<YOUR_API_KEY>/{encoded_api_url}"
+              }}
+            }}
+          }}
+          ```
+
+          > **Note:** The URL is now "clean" and path-based. Replace `<YOUR_API_KEY>` with your project's API key.
+          """
+
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
+              f.write(summary)
+          EOF

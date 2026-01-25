@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { apiClient } from "../api-client.js";
+import type { ApiClient } from "../api-client.js";
 
-export const createSubtaskTool = {
+export const createSubtaskTool = (apiClient: ApiClient) => ({
   name: "create_subtask",
   description:
     "Creates a new subtask under a specific parent task. Use this to break down complex tasks into smaller, manageable units.",
@@ -21,9 +21,9 @@ export const createSubtaskTool = {
       ],
     };
   },
-};
+});
 
-export const updateSubtaskStatusTool = {
+export const updateSubtaskStatusTool = (apiClient: ApiClient) => ({
   name: "update_subtask_status",
   description: "Updates the status of a subtask. Allowed statuses are: todo, done, cancelled.",
   inputSchema: z.object({
@@ -41,9 +41,9 @@ export const updateSubtaskStatusTool = {
       ],
     };
   },
-};
+});
 
-export const proposeTaskResolutionTool = {
+export const proposeTaskResolutionTool = (apiClient: ApiClient) => ({
   name: "propose_task_resolution",
   description:
     "Proposes a resolution (done or cancelled) for a delegated task. This requires a comment explaining the result or reason for cancellation.",
@@ -63,9 +63,9 @@ export const proposeTaskResolutionTool = {
       ],
     };
   },
-};
+});
 
-export const reorderTasksTool = {
+export const reorderTasksTool = (apiClient: ApiClient) => ({
   name: "reorder_tasks",
   description: "Reorders a list of tasks. Use this to prioritize subtasks or organize the task list logically.",
   inputSchema: z.object({
@@ -89,4 +89,4 @@ export const reorderTasksTool = {
       ],
     };
   },
-};
+});

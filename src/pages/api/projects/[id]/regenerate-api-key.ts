@@ -33,7 +33,7 @@ export async function POST({ params, locals, cookies, request }: APIContext) {
   }
 
   const projectId = result.data;
-  const supabase = createSupabaseServer({ cookies, headers: request.headers });
+  const supabase = createSupabaseServer({ cookies, headers: request.headers, locals });
 
   try {
     const projectService = new ProjectService(supabase);

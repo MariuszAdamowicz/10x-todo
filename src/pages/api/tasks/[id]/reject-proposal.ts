@@ -19,7 +19,7 @@ export const POST = async ({ params, request, locals, cookies }: APIContext) => 
     const body = await request.json();
     const { comment } = taskRejectProposalSchema.parse(body);
 
-    const supabase = createSupabaseServer({ cookies, headers: request.headers });
+    const supabase = createSupabaseServer({ cookies, headers: request.headers, locals });
     const taskService = new TaskService(supabase);
     const updatedTask = await taskService.rejectProposal(taskId, user.id, comment);
 

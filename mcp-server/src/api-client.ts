@@ -1,11 +1,11 @@
-import { config } from "./config.js";
+import type { Config } from "./config.js";
 import type { Task } from "./types.js";
 
 export class ApiClient {
   private baseUrl: string;
   private apiKey: string;
 
-  constructor() {
+  constructor(config: Config) {
     this.baseUrl = config.TODO_API_URL.replace(/\/$/, ""); // Remove trailing slash
     this.apiKey = config.TODO_API_KEY;
   }
@@ -110,5 +110,3 @@ export class ApiClient {
     });
   }
 }
-
-export const apiClient = new ApiClient();

@@ -35,7 +35,11 @@ export async function GET(context: APIContext): Promise<Response> {
   }
 
   const validatedId = validationResult.data;
-  const supabase = createSupabaseServer({ cookies: context.cookies, headers: context.request.headers });
+  const supabase = createSupabaseServer({
+    cookies: context.cookies,
+    headers: context.request.headers,
+    locals: context.locals,
+  });
 
   try {
     const projectService = new ProjectService(supabase);
@@ -92,7 +96,11 @@ export async function PUT(context: APIContext): Promise<Response> {
   }
 
   // 3. Call the service to update the project
-  const supabase = createSupabaseServer({ cookies: context.cookies, headers: context.request.headers });
+  const supabase = createSupabaseServer({
+    cookies: context.cookies,
+    headers: context.request.headers,
+    locals: context.locals,
+  });
   try {
     const projectService = new ProjectService(supabase);
     const updatedProject = await projectService.updateProject(validatedId, user.id, projectData);
@@ -141,7 +149,11 @@ export async function DELETE(context: APIContext): Promise<Response> {
   }
 
   const validatedId = validationResult.data;
-  const supabase = createSupabaseServer({ cookies: context.cookies, headers: context.request.headers });
+  const supabase = createSupabaseServer({
+    cookies: context.cookies,
+    headers: context.request.headers,
+    locals: context.locals,
+  });
 
   try {
     const projectService = new ProjectService(supabase);

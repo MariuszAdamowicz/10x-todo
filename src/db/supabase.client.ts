@@ -31,11 +31,20 @@ function parseCookieHeader(cookieHeader: string | null): { name: string; value: 
  * This client is essential for Server-Side Rendering (SSR) and protecting routes.
  * It correctly handles cookies for authentication state management.
  *
- * @param context An object containing Astro's `cookies` and `headers` objects.
+ * @param context An object containing Astro's `cookies`, `headers` and optional `env`.
  * @returns A Supabase server client instance.
  */
-export const createSupabaseServer = (context: { cookies: AstroCookies; headers: Headers }) => {
-  return createServerClient<Database>(import.meta.env.SUPABASE_URL, import.meta.env.SUPABASE_ANON_KEY, {
+export const createSupabaseServer = (context: {
+  cookies: AstroCookies;
+  headers: Headers;
+  env?: Record<string, string | undefined>;
+  locals?: { runtime?: { env: Record<string, string | undefined> } };
+}) => {
+  const runtimeEnv = context.env || context.locals?.runtime?.env;
+  const supabaseUrl = runtimeEnv?.SUPABASE_URL || import.meta.env.SUPABASE_URL;
+  const supabaseAnonKey = runtimeEnv?.SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY;
+
+  return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
     cookieOptions,
     cookies: {
       // The `getAll` method is used to read all cookies from the request.
