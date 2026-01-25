@@ -16,40 +16,33 @@ interface Bindings {
 const app = new Hono<{ Bindings: Bindings }>();
 app.use("*", cors());
 
-// Health check and diagnostic
-app.get("/", (c) => {
-  return c.text(
-    `10x-Todo MCP Server is Online.\n\nUsage:\n- GET /sse: Connect via SSE\n- POST /message/:sessionId: Send messages`
-  );
-});
+app.get("/", (c) => c.text("10x-Todo MCP Server is Online."));
 
-// In-memory store for active transports
-// NOTE: On Cloudflare Workers, this depends on isolate reuse.
+// Map to store active transports
 const activeSessions = new Map<string, SSEServerTransport>();
 
-app.get("/sse", async (c) => {
-  const configSource = {
-    TODO_API_URL:
-      c.req.query("TODO_API_URL") ||
-      c.req.query("apiUrl") ||
-      (c.env as Record<string, string | undefined>)?.TODO_API_URL,
-    TODO_API_KEY:
-      c.req.query("TODO_API_KEY") ||
-      c.req.query("apiKey") ||
-      (c.env as Record<string, string | undefined>)?.TODO_API_KEY,
-  };
+/**
+ * Robust MCP SSE Endpoint using Path Parameters
+ * Format: /mcp/:apiKey/:encodedApiUrl
+ */
+app.get("/mcp/:apiKey/:encodedApiUrl", async (c) => {
+  const apiKey = c.req.param("apiKey");
+  // Decode the URL (it might be base64 or just url-encoded)
+  let apiUrl = "";
+  try {
+    const rawUrl = c.req.param("encodedApiUrl");
+    // Simple Base64 decode for Cloudflare
+    apiUrl = rawUrl.startsWith("http") ? rawUrl : atob(rawUrl);
+  } catch {
+    return c.text("Invalid encodedApiUrl. Use Base64.", 400);
+  }
 
-  const config = validateConfig(configSource);
+  const config = validateConfig({ TODO_API_KEY: apiKey, TODO_API_URL: apiUrl });
   const apiClient = new ApiClient(config);
-  const server = new McpServer({
-    name: "10x-todo-mcp",
-    version: "1.0.0",
-  });
+  const server = new McpServer({ name: "10x-todo-mcp", version: "1.0.0" });
 
-  getTools(apiClient).forEach((tool) => server.tool(tool.name, tool.description, tool.inputSchema.shape, tool.execute));
-  getResources(apiClient).forEach((res) =>
-    server.resource(res.name, res.uri, async () => ({ contents: await res.read() }))
-  );
+  getTools(apiClient).forEach((t) => server.tool(t.name, t.description, t.inputSchema.shape, t.execute));
+  getResources(apiClient).forEach((r) => server.resource(r.name, r.uri, async () => ({ contents: await r.read() })));
   prompts.forEach((p) =>
     server.prompt(
       p.name,
@@ -93,20 +86,10 @@ app.get("/sse", async (c) => {
     },
   };
 
-  // We use a PATH PARAMETER for the session ID instead of a query parameter.
-  // Some clients might strip query params from the endpoint.
-  const transport = new SSEServerTransport(`${baseUrl}/message/${sessionId}`, responseBridge as unknown as Response);
+  const transport = new SSEServerTransport(`${baseUrl}/post/${sessionId}`, responseBridge as unknown as Response);
 
   activeSessions.set(sessionId, transport);
-
-  transport.onclose = () => {
-    activeSessions.delete(sessionId);
-    try {
-      writer.close();
-    } catch {
-      /* already closed */
-    }
-  };
+  transport.onclose = () => activeSessions.delete(sessionId);
 
   await server.connect(transport);
 
@@ -119,26 +102,24 @@ app.get("/sse", async (c) => {
   });
 });
 
-// Changed to path parameter for robustness
-app.post("/message/:sessionId", async (c) => {
+/**
+ * Message receiver endpoint
+ */
+app.post("/post/:sessionId", async (c) => {
   const sessionId = c.req.param("sessionId");
   const transport = activeSessions.get(sessionId);
 
   if (!transport) {
-    return c.text(`Session ${sessionId} not found. Connection may have timed out or isolate recycled.`, 404);
+    return c.text("Session not found", 404);
   }
 
   try {
     const body = await c.req.json();
-    // Directly inject message
-    // @ts-expect-error - accessing internal property
-    if (transport.onmessage) {
-      // @ts-expect-error - internal call
-      transport.onmessage(body);
-    }
-    return c.text("Accepted");
-  } catch (error) {
-    return c.text(String(error), 500);
+    // @ts-expect-error - bypass stateful node streams
+    if (transport.onmessage) transport.onmessage(body);
+    return c.text("OK");
+  } catch (e) {
+    return c.text(String(e), 500);
   }
 });
 

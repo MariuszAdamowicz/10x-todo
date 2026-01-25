@@ -109,46 +109,37 @@ jobs:
         env:
           FRONT_URL: ${{ needs.deploy.outputs.deployment-url }}
           MCP_URL: ${{ needs.deploy-mcp.outputs.deployment-url }}
-          FRONT_STATUS: ${{ needs.deploy.result }}
-          MCP_STATUS: ${{ needs.deploy-mcp.result }}
         run: |
           python3 - <<'EOF'
           import os
-          import urllib.parse
+          import base64
 
           front_url = os.environ.get('FRONT_URL', 'N/A')
           mcp_url = os.environ.get('MCP_URL', 'N/A')
-          front_status = os.environ.get('FRONT_STATUS', 'unknown')
-          mcp_status = os.environ.get('MCP_STATUS', 'unknown')
 
-          # URL Encode the frontend URL for the MCP parameter
-          encoded_api_url = urllib.parse.quote(front_url) if front_url != 'N/A' else 'N/A'
+          # Encode the frontend URL to Base64 for a clean path
+          encoded_api_url = base64.b64encode(front_url.encode()).decode() if front_url != 'N/A' else 'N/A'
 
           summary = f"""
-          ## 🚀 Deployment Results
+          ## 🚀 Deployment Successful!
 
           ### 🌐 Frontend Application
-          - **Status:** {front_status}
           - **URL:** {front_url}
 
           ### 🤖 MCP Server Configuration
-          - **Status:** {mcp_status}
-          - **SSE Endpoint:** {mcp_url}/sse
-
-          #### 📝 Configuration Pattern
           Copy this to your `.gemini/settings.json` or Cursor settings:
 
           ```json
           {{
             "mcpServers": {{
               "10x-todo": {{
-                "url": "{mcp_url}/sse?apiKey=<YOUR_API_KEY>&apiUrl={encoded_api_url}"
+                "url": "{mcp_url}/mcp/<YOUR_API_KEY>/{encoded_api_url}"
               }}
             }}
           }}
           ```
 
-          > **Note:** The `apiUrl` parameter is already URL-encoded. Replace `<YOUR_API_KEY>` with the key from your project settings.
+          > **Note:** The URL is now "clean" and path-based. Replace `<YOUR_API_KEY>` with your project's API key.
           """
 
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
