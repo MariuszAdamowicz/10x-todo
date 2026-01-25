@@ -2,6 +2,9 @@ name: Production Deployment
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - cloudflare_deployment
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
