@@ -38,14 +38,6 @@ jobs:
       - name: Run Unit Tests
         run: npm run test:unit -- --coverage
 
-      - name: Upload Unit Test Coverage
-        if: always()
-        uses: actions/upload-artifact@v6
-        with:
-          name: vitest-coverage
-          path: coverage/
-          retention-days: 7
-
   deploy:
     name: Deploy to Cloudflare Pages
     needs: [lint, unit-test]
@@ -113,11 +105,19 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Display URLs
+      - name: Display Configuration Pattern
         run: |
-          echo "## Deployment Results" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 Deployment Successful!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Service | Status | URL |" >> $GITHUB_STEP_SUMMARY
-          echo "| :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
-          echo "| Frontend | ${{ needs.deploy.result }} | ${{ needs.deploy.outputs.deployment-url }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| MCP | ${{ needs.deploy-mcp.result }} | ${{ needs.deploy-mcp.outputs.deployment-url }}/sse |" >> $GITHUB_STEP_SUMMARY
+          echo "### 🤖 MCP Server Configuration Pattern" >> $GITHUB_STEP_SUMMARY
+          echo "Copy this to your ".gemini/settings.json:":" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "```json" >> $GITHUB_STEP_SUMMARY
+          echo "{"
+          echo "  \"mcpServers\": {"
+          echo "    \"10x-todo\": {"
+          echo "      \"url\": \"${{ needs.deploy-mcp.outputs.deployment-url }}/sse?apiKey=<YOUR_API_KEY>&apiUrl=${{ needs.deploy.outputs.deployment-url }}\""
+          echo "    }"
+          echo "  }"
+          echo "}"
+          echo "```"
