@@ -105,30 +105,52 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Display Configuration Pattern
+      - name: Generate Summary
+        env:
+          FRONT_URL: ${{ needs.deploy.outputs.deployment-url }}
+          MCP_URL: ${{ needs.deploy-mcp.outputs.deployment-url }}
+          FRONT_STATUS: ${{ needs.deploy.result }}
+          MCP_STATUS: ${{ needs.deploy-mcp.result }}
         run: |
-          FRONTEND_URL="${{ needs.deploy.outputs.deployment-url }}"
-          MCP_BASE_URL="${{ needs.deploy-mcp.outputs.deployment-url }}"
-          ENCODED_API_URL=$(python3 -c "import urllib.parse; print(urllib.parse.quote('''$FRONTEND_URL'''))")
+          python3 - <<'EOF'
+          import os
+          import urllib.parse
 
-          cat <<EOF >> $GITHUB_STEP_SUMMARY
-          ## 🚀 Deployment Successful!
+          front_url = os.environ.get('FRONT_URL', 'N/A')
+          mcp_url = os.environ.get('MCP_URL', 'N/A')
+          front_status = os.environ.get('FRONT_STATUS', 'unknown')
+          mcp_status = os.environ.get('MCP_STATUS', 'unknown')
+          
+          # URL Encode the frontend URL for the MCP parameter
+          encoded_api_url = urllib.parse.quote(front_url) if front_url != 'N/A' else 'N/A'
+          
+          summary = f"""
+          ## 🚀 Deployment Results
 
           ### 🌐 Frontend Application
-          URL: $FRONTEND_URL
+          - **Status:** {front_status}
+          - **URL:** {front_url}
 
-          ### 🤖 MCP Server Configuration Pattern
-          Copy this to your `.gemini/settings.json`:
+          ### 🤖 MCP Server Configuration
+          - **Status:** {mcp_status}
+          - **SSE Endpoint:** {mcp_url}/sse
+
+          #### 📝 Configuration Pattern
+          Copy this to your `.gemini/settings.json` or Cursor settings:
 
           ```json
-          {
-            "mcpServers": {
-              "10x-todo": {
-                "url": "$MCP_BASE_URL/sse?apiKey=<YOUR_API_KEY>&apiUrl=$ENCODED_API_URL"
-              }
-            }
-          }
+          {{
+            "mcpServers": {{
+              "10x-todo": {{
+                "url": "{mcp_url}/sse?apiKey=<YOUR_API_KEY>&apiUrl={encoded_api_url}"
+              }}
+            }}
+          }}
           ```
 
-          > **Note:** The `apiUrl` has been URL-encoded for safety. Replace `<YOUR_API_KEY>` with your project's API key.
+          > **Note:** The `apiUrl` parameter is already URL-encoded. Replace `<YOUR_API_KEY>` with the key from your project settings.
+          """
+          
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
+              f.write(summary)
           EOF
