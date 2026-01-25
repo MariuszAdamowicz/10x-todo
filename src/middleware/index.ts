@@ -18,7 +18,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   context.locals.supabase = supabase;
 
   // API key authentication takes precedence for API routes.
-  const apiKey = request.headers.get("X-API-Key");
+  const apiKey = request.headers.get("X-API-Key") || url.searchParams.get("apiKey");
   if (url.pathname.startsWith("/api/") && apiKey) {
     const supabaseUrl = env?.SUPABASE_URL || import.meta.env.SUPABASE_URL;
     const supabaseServiceRoleKey = env?.SUPABASE_SERVICE_ROLE_KEY || import.meta.env.SUPABASE_SERVICE_ROLE_KEY;

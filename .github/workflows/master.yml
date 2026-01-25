@@ -96,4 +96,3 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: mcp-server
           command: deploy
-
