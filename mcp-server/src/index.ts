@@ -21,15 +21,19 @@ app.get("/", (c) => {
   return c.json({
     status: "online",
     service: "10x-todo-mcp",
-    message: "MCP Server is running. Use /sse to connect.",
+    env: {
+      has_url: !!c.env.TODO_API_URL,
+      has_key: !!c.env.TODO_API_KEY,
+    },
   });
 });
 
 // Map to store active transports by session ID
-// NOTE: On Cloudflare Workers, this relies on isolate reuse.
+// NOTE: On Cloudflare Workers without Durable Objects, this depends on isolate reuse.
 const activeSessions = new Map<string, SSEServerTransport>();
 
 app.get("/sse", async (c) => {
+  // Extract config from query params OR Cloudflare env
   const configSource = {
     TODO_API_URL:
       c.req.query("TODO_API_URL") ||
@@ -43,11 +47,13 @@ app.get("/sse", async (c) => {
 
   const config = validateConfig(configSource);
   const apiClient = new ApiClient(config);
+
   const server = new McpServer({
     name: "10x-todo-mcp",
     version: "1.0.0",
   });
 
+  // Register tools/resources with the specific apiClient for this session
   getTools(apiClient).forEach((tool) => server.tool(tool.name, tool.description, tool.inputSchema.shape, tool.execute));
   getResources(apiClient).forEach((res) =>
     server.resource(res.name, res.uri, async () => ({ contents: await res.read() }))
@@ -62,7 +68,6 @@ app.get("/sse", async (c) => {
   );
 
   const sessionId = crypto.randomUUID();
-  const baseUrl = new URL(c.req.url).origin;
 
   // Create a bridge between Web Streams and Node-like response expected by the SDK
   const { readable, writable } = new TransformStream();
@@ -73,32 +78,38 @@ app.get("/sse", async (c) => {
     writeHead: () => {
       /* noop */
     },
-    write: (chunk: unknown) => writer.write(encoder.encode(typeof chunk === "string" ? chunk : JSON.stringify(chunk))),
-    end: () => writer.close(),
+    write: (chunk: unknown) => {
+      const text = typeof chunk === "string" ? chunk : JSON.stringify(chunk);
+      writer.write(encoder.encode(text));
+    },
+    end: () => {
+      writer.close();
+    },
     on: () => {
       /* noop */
     },
     once: () => {
       /* noop */
     },
+    emit: () => true,
     removeListener: () => {
       /* noop */
     },
-    emit: () => true,
   };
 
-  // We use an ABSOLUTE path that the client will POST to.
-  // This is safer for remote clients like Cursor.
-  const transport = new SSEServerTransport(`${baseUrl}/message`, responseBridge as unknown as Response);
-
-  // Override the endpoint to include the sessionId in the absolute URL
-  // @ts-expect-error - overriding internal property to include session ID and make it absolute
-  transport._endpoint = `${baseUrl}/message?sessionId=${sessionId}`;
+  // SSEServerTransport expects a path for POSTing messages.
+  // We include the sessionId in the path to ensure routing works across isolates.
+  const transport = new SSEServerTransport(`/message?sessionId=${sessionId}`, responseBridge as unknown as Response);
 
   activeSessions.set(sessionId, transport);
+
   transport.onclose = () => {
     activeSessions.delete(sessionId);
-    writer.close();
+    try {
+      writer.close();
+    } catch {
+      /* already closed */
+    }
   };
 
   await server.connect(transport);
@@ -117,7 +128,7 @@ app.post("/message", async (c) => {
   const transport = sessionId ? activeSessions.get(sessionId) : null;
 
   if (!transport) {
-    return c.text(`Session ${sessionId} not found. Connection might have timed out or isolate recycled.`, 404);
+    return c.text(`Session ${sessionId} not found. Ensure you are hitting the same Worker instance.`, 404);
   }
 
   try {

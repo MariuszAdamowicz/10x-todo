@@ -120,10 +120,10 @@ jobs:
           mcp_url = os.environ.get('MCP_URL', 'N/A')
           front_status = os.environ.get('FRONT_STATUS', 'unknown')
           mcp_status = os.environ.get('MCP_STATUS', 'unknown')
-          
+
           # URL Encode the frontend URL for the MCP parameter
           encoded_api_url = urllib.parse.quote(front_url) if front_url != 'N/A' else 'N/A'
-          
+
           summary = f"""
           ## 🚀 Deployment Results
 
@@ -150,7 +150,7 @@ jobs:
 
           > **Note:** The `apiUrl` parameter is already URL-encoded. Replace `<YOUR_API_KEY>` with the key from your project settings.
           """
-          
+
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
               f.write(summary)
           EOF
