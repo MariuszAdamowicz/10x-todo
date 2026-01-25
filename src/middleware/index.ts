@@ -10,7 +10,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const { url, request, redirect, cookies, locals } = context;
 
   // Cloudflare runtime environment variables
-  const env = (locals as any).runtime?.env || import.meta.env;
+  const runtime = (locals as { runtime?: { env: Record<string, string | undefined> } }).runtime;
+  const env = runtime?.env || import.meta.env;
 
   // This client is for user session management and is scoped to the user.
   const supabase = createSupabaseServer({ cookies, headers: request.headers, env });
