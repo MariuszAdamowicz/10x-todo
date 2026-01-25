@@ -16,14 +16,29 @@ interface Bindings {
 const app = new Hono<{ Bindings: Bindings }>();
 app.use("*", cors());
 
+// Health check and diagnostic route
+app.get("/", (c) => {
+  return c.json({
+    status: "online",
+    service: "10x-todo-mcp",
+    message: "MCP Server is running. Use /sse to connect.",
+  });
+});
+
 // Map to store active transports by session ID
-// NOTE: On Cloudflare Workers without Durable Objects, this depends on isolate reuse.
+// NOTE: On Cloudflare Workers, this relies on isolate reuse.
 const activeSessions = new Map<string, SSEServerTransport>();
 
 app.get("/sse", async (c) => {
   const configSource = {
-    TODO_API_URL: c.req.query("TODO_API_URL") || c.req.query("apiUrl") || c.env.TODO_API_URL,
-    TODO_API_KEY: c.req.query("TODO_API_KEY") || c.req.query("apiKey") || c.env.TODO_API_KEY,
+    TODO_API_URL:
+      c.req.query("TODO_API_URL") ||
+      c.req.query("apiUrl") ||
+      (c.env as Record<string, string | undefined>)?.TODO_API_URL,
+    TODO_API_KEY:
+      c.req.query("TODO_API_KEY") ||
+      c.req.query("apiKey") ||
+      (c.env as Record<string, string | undefined>)?.TODO_API_KEY,
   };
 
   const config = validateConfig(configSource);
@@ -47,7 +62,6 @@ app.get("/sse", async (c) => {
   );
 
   const sessionId = crypto.randomUUID();
-  const baseUrl = new URL(c.req.url).origin;
 
   // Create a bridge between Web Streams and Node-like response expected by the SDK
   const { readable, writable } = new TransformStream();
@@ -72,11 +86,13 @@ app.get("/sse", async (c) => {
     emit: () => true,
   };
 
-  // Use ABSOLUTE URL for the message endpoint to prevent 404s on the client side
-  const transport = new SSEServerTransport(
-    `${baseUrl}/message?sessionId=${sessionId}`,
-    responseBridge as unknown as Response
-  );
+  // We use a path that the client will POST to.
+  // The SDK will provide this URL to the client in the first SSE message.
+  const transport = new SSEServerTransport("/message", responseBridge as unknown as Response);
+
+  // We need to hack the transport a bit to include the sessionId in the URL it sends to the client
+  // @ts-expect-error - overriding internal property to include session ID
+  transport._endpoint = `/message?sessionId=${sessionId}`;
 
   activeSessions.set(sessionId, transport);
   transport.onclose = () => {
@@ -105,7 +121,7 @@ app.post("/message", async (c) => {
 
   try {
     const body = await c.req.json();
-    // @ts-expect-error - Hono request type mismatch with MCP SDK expectation
+    // @ts-expect-error - Hono request type mismatch
     await transport.handlePostMessage(body, c.res as unknown as Response);
     return c.text("OK");
   } catch (error) {
