@@ -16,14 +16,18 @@ interface Bindings {
 const app = new Hono<{ Bindings: Bindings }>();
 app.use("*", cors());
 
-// Health check
-app.get("/", (c) => c.text("10x-Todo MCP Server is Online. Use /sse to connect."));
+// Health check and diagnostic
+app.get("/", (c) => {
+  return c.text(
+    `10x-Todo MCP Server is Online.\n\nUsage:\n- GET /sse: Connect via SSE\n- POST /message/:sessionId: Send messages`
+  );
+});
 
 // In-memory store for active transports
+// NOTE: On Cloudflare Workers, this depends on isolate reuse.
 const activeSessions = new Map<string, SSEServerTransport>();
 
 app.get("/sse", async (c) => {
-  // Extract configuration from query params (passed by client)
   const configSource = {
     TODO_API_URL:
       c.req.query("TODO_API_URL") ||
@@ -42,7 +46,6 @@ app.get("/sse", async (c) => {
     version: "1.0.0",
   });
 
-  // Register all tools and resources
   getTools(apiClient).forEach((tool) => server.tool(tool.name, tool.description, tool.inputSchema.shape, tool.execute));
   getResources(apiClient).forEach((res) =>
     server.resource(res.name, res.uri, async () => ({ contents: await res.read() }))
@@ -51,7 +54,7 @@ app.get("/sse", async (c) => {
     server.prompt(
       p.name,
       p.description,
-      // @ts-expect-error - SDK version mismatch in types
+      // @ts-expect-error - SDK mismatch
       async () => ({ messages: p.messages })
     )
   );
@@ -59,7 +62,6 @@ app.get("/sse", async (c) => {
   const sessionId = crypto.randomUUID();
   const baseUrl = new URL(c.req.url).origin;
 
-  // Bridge Hono response to Web Stream
   const { readable, writable } = new TransformStream();
   const writer = writable.getWriter();
   const encoder = new TextEncoder();
@@ -76,7 +78,7 @@ app.get("/sse", async (c) => {
       try {
         writer.close();
       } catch {
-        /* already closed */
+        /* ignore */
       }
     },
     on: () => {
@@ -91,16 +93,19 @@ app.get("/sse", async (c) => {
     },
   };
 
-  // We use an absolute URL for the message endpoint to help remote clients
-  const transport = new SSEServerTransport(
-    `${baseUrl}/message?sessionId=${sessionId}`,
-    responseBridge as unknown as Response
-  );
+  // We use a PATH PARAMETER for the session ID instead of a query parameter.
+  // Some clients might strip query params from the endpoint.
+  const transport = new SSEServerTransport(`${baseUrl}/message/${sessionId}`, responseBridge as unknown as Response);
 
   activeSessions.set(sessionId, transport);
+
   transport.onclose = () => {
     activeSessions.delete(sessionId);
-    responseBridge.end();
+    try {
+      writer.close();
+    } catch {
+      /* already closed */
+    }
   };
 
   await server.connect(transport);
@@ -114,20 +119,21 @@ app.get("/sse", async (c) => {
   });
 });
 
-app.post("/message", async (c) => {
-  const sessionId = c.req.query("sessionId");
-  const transport = sessionId ? activeSessions.get(sessionId) : null;
+// Changed to path parameter for robustness
+app.post("/message/:sessionId", async (c) => {
+  const sessionId = c.req.param("sessionId");
+  const transport = activeSessions.get(sessionId);
 
   if (!transport) {
-    return c.text(`Session ${sessionId} not found. Connection may have timed out.`, 404);
+    return c.text(`Session ${sessionId} not found. Connection may have timed out or isolate recycled.`, 404);
   }
 
   try {
     const body = await c.req.json();
-    // Directly inject the message into the transport bypasssing Node stream emulation
-    // @ts-expect-error - accessing internal handler for Cloudflare compatibility
+    // Directly inject message
+    // @ts-expect-error - accessing internal property
     if (transport.onmessage) {
-      // @ts-expect-error - internal SDK call
+      // @ts-expect-error - internal call
       transport.onmessage(body);
     }
     return c.text("Accepted");
