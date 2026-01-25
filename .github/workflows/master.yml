@@ -107,20 +107,15 @@ jobs:
     steps:
       - name: Display Configuration Pattern
         run: |
-          # URL Encode function
-          urlencode() {
-            python3 -c "import urllib.parse; print(python3.urllib.parse.quote(input()))" 2>/dev/null || \
-            python3 -c "import sys, urllib.parse; print(urllib.parse.quote(sys.stdin.read().strip()))"
-          }
-
           FRONTEND_URL="${{ needs.deploy.outputs.deployment-url }}"
           MCP_BASE_URL="${{ needs.deploy-mcp.outputs.deployment-url }}"
+          ENCODED_API_URL=$(python3 -c "import urllib.parse; print(urllib.parse.quote('''$FRONTEND_URL'''))")
 
-          # Construct the encoded URL
-          ENCODED_API_URL=$(echo "$FRONTEND_URL" | python3 -c "import sys, urllib.parse; print(urllib.parse.quote(sys.stdin.read().strip()))")
-
-          cat >> $GITHUB_STEP_SUMMARY <<EOF
+          cat <<EOF >> $GITHUB_STEP_SUMMARY
           ## 🚀 Deployment Successful!
+
+          ### 🌐 Frontend Application
+          URL: $FRONTEND_URL
 
           ### 🤖 MCP Server Configuration Pattern
           Copy this to your `.gemini/settings.json`:
