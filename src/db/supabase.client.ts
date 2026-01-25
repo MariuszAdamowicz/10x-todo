@@ -40,9 +40,9 @@ export const createSupabaseServer = (context: {
   env?: Record<string, string | undefined>;
   locals?: { runtime?: { env: Record<string, string | undefined> } };
 }) => {
-  const env = context.env || context.locals?.runtime?.env || import.meta.env;
-  const supabaseUrl = env.SUPABASE_URL;
-  const supabaseAnonKey = env.SUPABASE_ANON_KEY;
+  const runtimeEnv = context.env || context.locals?.runtime?.env;
+  const supabaseUrl = runtimeEnv?.SUPABASE_URL || import.meta.env.SUPABASE_URL;
+  const supabaseAnonKey = runtimeEnv?.SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY;
 
   return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
     cookieOptions,
