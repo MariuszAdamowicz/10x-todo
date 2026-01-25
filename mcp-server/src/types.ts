@@ -39,13 +39,13 @@ export interface Database {
       };
       task_comments: {
         Row: {
-            author_is_ai: boolean;
-            comment: string;
-            created_at: string;
-            id: string;
-            new_status_id: number | null;
-            previous_status_id: number | null;
-            task_id: string;
+          author_is_ai: boolean;
+          comment: string;
+          created_at: string;
+          id: string;
+          new_status_id: number | null;
+          previous_status_id: number | null;
+          task_id: string;
         };
       };
     };
@@ -53,7 +53,7 @@ export interface Database {
 }
 
 // Helpers to extract Row types
-type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row'];
+type Tables<T extends keyof Database["public"]["Tables"]> = Database["public"]["Tables"][T]["Row"];
 
 // #region Entity Types
 

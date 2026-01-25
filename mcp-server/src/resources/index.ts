@@ -1,4 +1,3 @@
-import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { apiClient } from "../api-client.js";
 
 // We define resources as an array of configuration objects to be registered in index.ts

@@ -3,9 +3,10 @@ import { apiClient } from "../api-client.js";
 
 export const getTaskHierarchyTool = {
   name: "get_task_hierarchy",
-  description: "Retrieves the full hierarchy (tree structure) of all tasks in the project. Use this to understand the project structure and context.",
+  description:
+    "Retrieves the full hierarchy (tree structure) of all tasks in the project. Use this to understand the project structure and context.",
   inputSchema: z.object({}),
-  execute: async (_args: any) => {
+  execute: async () => {
     const tasks = await apiClient.getTaskHierarchy();
     return {
       content: [
@@ -37,9 +38,10 @@ VIOLATION WARNING: Writing code without prior MCP tracking (Ghost Work) will cau
 
 export const listDelegatedTasksTool = {
   name: "list_delegated_tasks",
-  description: "Retrieves a list of tasks that have been specifically delegated to the AI assistant. These are your priority items.",
+  description:
+    "Retrieves a list of tasks that have been specifically delegated to the AI assistant. These are your priority items.",
   inputSchema: z.object({}),
-  execute: async (_args: any) => {
+  execute: async () => {
     const tasks = await apiClient.listDelegatedTasks();
     return {
       content: [

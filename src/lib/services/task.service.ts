@@ -466,10 +466,7 @@ export class TaskService {
     return updatedTask;
   }
 
-  public async reorderTasks(
-    dto: ReorderTasksDto,
-    auth: { userId?: string; aiProjectId?: string }
-  ): Promise<void> {
+  public async reorderTasks(dto: ReorderTasksDto, auth: { userId?: string; aiProjectId?: string }): Promise<void> {
     const taskIds = dto.tasks.map((t) => t.id);
 
     // 1. Fetch all tasks at once
@@ -500,7 +497,7 @@ export class TaskService {
     if (auth.aiProjectId) {
       // AI Context: The project ID must match the AI's assigned project
       if (projectId !== auth.aiProjectId) {
-         throw new AuthorizationError("AI agent cannot reorder tasks outside of its project.");
+        throw new AuthorizationError("AI agent cannot reorder tasks outside of its project.");
       }
     } else if (auth.userId) {
       // User Context: Verify the user owns the project
@@ -515,7 +512,7 @@ export class TaskService {
         throw new AuthorizationError("User does not have access to this project.");
       }
     } else {
-        throw new AuthorizationError("Authentication required.");
+      throw new AuthorizationError("Authentication required.");
     }
 
     // 5. Call RPC to update positions in a transaction

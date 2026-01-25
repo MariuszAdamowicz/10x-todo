@@ -8,7 +8,7 @@ export const prerender = false;
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const { user, aiProjectId, supabase } = locals;
-  
+
   // Basic auth check - middleware ensures 'user' is present if logged in or API key is valid
   if (!user) {
     return new Response(JSON.stringify({ message: "Unauthorized" }), { status: 401 });
@@ -30,7 +30,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     const validatedBody = validation.data;
-    
+
     // 2. Initialize Service with the client provided by middleware (handles both Session and API Key contexts)
     const taskService = new TaskService(supabase);
 
