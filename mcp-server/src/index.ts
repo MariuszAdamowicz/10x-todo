@@ -11,10 +11,25 @@ import { prompts } from "./prompts/index.js";
 const app = new Hono();
 app.use("*", cors());
 
-// Helper to create and configure an MCP server instance
+// Map to store active transports by session ID
+const activeSessions = new Map<string, SSEServerTransport>();
 
-function createMcpServer(env: Record<string, string | undefined>) {
-  const config = validateConfig(env);
+app.get("/sse", async (c) => {
+  // Extract config from query params OR Cloudflare env
+
+  const configSource = {
+    TODO_API_URL:
+      c.req.query("TODO_API_URL") ||
+      c.req.query("apiUrl") ||
+      (c.env as Record<string, string | undefined>)?.TODO_API_URL,
+
+    TODO_API_KEY:
+      c.req.query("TODO_API_KEY") ||
+      c.req.query("apiKey") ||
+      (c.env as Record<string, string | undefined>)?.TODO_API_KEY,
+  };
+
+  const config = validateConfig(configSource);
 
   const apiClient = new ApiClient(config);
 
@@ -24,7 +39,7 @@ function createMcpServer(env: Record<string, string | undefined>) {
     version: "1.0.0",
   });
 
-  // Register MCP elements with the request-specific ApiClient
+  // Register tools/resources with the specific apiClient for this session
 
   getTools(apiClient).forEach((tool) => server.tool(tool.name, tool.description, tool.inputSchema.shape, tool.execute));
 
@@ -44,46 +59,27 @@ function createMcpServer(env: Record<string, string | undefined>) {
     )
   );
 
-  return server;
-}
-
-// In-memory store for active transports
-
-// NOTE: This is ephemeral and limited by isolate lifetime.
-
-const activeSessions = new Map<string, { server: McpServer; transport: SSEServerTransport }>();
-
-app.get("/sse", async (c) => {
   const sessionId = crypto.randomUUID();
 
-  const server = createMcpServer(c.env as Record<string, string | undefined>);
+  // Using a custom endpoint for messages that includes the session ID
 
-  const transport = new SSEServerTransport("/message", c.res as unknown as Response);
+  const transport = new SSEServerTransport("/message?sessionId=${sessionId}", c.res as unknown as Response);
 
-  activeSessions.set(sessionId, { server, transport });
-
-  transport.onclose = () => {
-    activeSessions.delete(sessionId);
-  };
+  activeSessions.set(sessionId, transport);
+  transport.onclose = () => activeSessions.delete(sessionId);
 
   await server.connect(transport);
-
-  // Return the SSE stream
   return c.res;
 });
 
 app.post("/message", async (c) => {
-  // Since we only support one global transport in this simplified bridging,
-  // we'll just use the last active one or implement session IDs in headers/query.
-  // For standard MCP SSE, the message post URL is provided by the server in the SSE stream.
-  const transport = Array.from(activeSessions.values())[0]?.transport;
+  const sessionId = c.req.query("sessionId");
+  const transport = sessionId ? activeSessions.get(sessionId) : null;
 
-  if (!transport) {
-    return c.text("No active MCP session found", 400);
-  }
+  if (!transport) return c.text("Session not found", 404);
 
-  // @ts-expect-error - Hono request type mismatch with MCP SDK expectation
-  await transport.handlePostMessage(c.req.raw as unknown as Request, c.res as unknown as Response);
+  // @ts-expect-error - Hono request type mismatch
+  await transport.handlePostMessage(c.req.raw, c.res);
   return c.text("OK");
 });
 

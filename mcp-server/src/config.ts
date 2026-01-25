@@ -1,5 +1,4 @@
 import { z } from "zod";
-import process from "node:process";
 
 const configSchema = z.object({
   TODO_API_URL: z.string().url().default("https://10x-todo.pages.dev"),
@@ -9,15 +8,13 @@ const configSchema = z.object({
 export type Config = z.infer<typeof configSchema>;
 
 /**
- * Validates configuration from environment variables.
- * Handles both Node.js (process.env) and Cloudflare Workers (env object).
+ * Validates configuration from environment variables or request parameters.
  */
-export function validateConfig(env: Record<string, string | undefined> | NodeJS.ProcessEnv = process.env): Config {
+export function validateConfig(env: Record<string, string | undefined> | NodeJS.ProcessEnv): Config {
   const result = configSchema.safeParse(env);
 
   if (!result.success) {
-    // We don't want to crash at the top level in Workers
-    throw new Error(`❌ Invalid configuration for 10x-todo-mcp: ${JSON.stringify(result.error.format())}`);
+    throw new Error(`Invalid MCP configuration: ${JSON.stringify(result.error.flatten().fieldErrors)}`);
   }
   return result.data;
 }
