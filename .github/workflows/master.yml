@@ -123,4 +123,4 @@ jobs:
           echo "| **MCP Server** | ${{ needs.deploy-mcp.result }} | ${{ needs.deploy-mcp.outputs.deployment-url }}/sse |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "> **Note:** The MCP Server URL above is your public endpoint for Cursor/Claude. Ensure 
-TODO_API_KEY" is set in the Worker secrets."
+TODO_API_KEY is set in the Worker secrets."
