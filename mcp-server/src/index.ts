@@ -8,23 +8,22 @@ import { getTools } from "./tools/index.js";
 import { getResources } from "./resources/index.js";
 import { prompts } from "./prompts/index.js";
 
-const app = new Hono();
+interface Bindings {
+  TODO_API_URL?: string;
+  TODO_API_KEY?: string;
+}
+
+const app = new Hono<{ Bindings: Bindings }>();
 app.use("*", cors());
 
 // Map to store active transports by session ID
-// NOTE: On Cloudflare Workers, this relies on isolate reuse.
+// NOTE: On Cloudflare Workers without Durable Objects, this depends on isolate reuse.
 const activeSessions = new Map<string, SSEServerTransport>();
 
 app.get("/sse", async (c) => {
   const configSource = {
-    TODO_API_URL:
-      c.req.query("TODO_API_URL") ||
-      c.req.query("apiUrl") ||
-      (c.env as Record<string, string | undefined>)?.TODO_API_URL,
-    TODO_API_KEY:
-      c.req.query("TODO_API_KEY") ||
-      c.req.query("apiKey") ||
-      (c.env as Record<string, string | undefined>)?.TODO_API_KEY,
+    TODO_API_URL: c.req.query("TODO_API_URL") || c.req.query("apiUrl") || c.env.TODO_API_URL,
+    TODO_API_KEY: c.req.query("TODO_API_KEY") || c.req.query("apiKey") || c.env.TODO_API_KEY,
   };
 
   const config = validateConfig(configSource);
@@ -48,6 +47,7 @@ app.get("/sse", async (c) => {
   );
 
   const sessionId = crypto.randomUUID();
+  const baseUrl = new URL(c.req.url).origin;
 
   // Create a bridge between Web Streams and Node-like response expected by the SDK
   const { readable, writable } = new TransformStream();
@@ -72,8 +72,11 @@ app.get("/sse", async (c) => {
     emit: () => true,
   };
 
-  // FIX: Use backticks for template string
-  const transport = new SSEServerTransport(`/message?sessionId=${sessionId}`, responseBridge as unknown as Response);
+  // Use ABSOLUTE URL for the message endpoint to prevent 404s on the client side
+  const transport = new SSEServerTransport(
+    `${baseUrl}/message?sessionId=${sessionId}`,
+    responseBridge as unknown as Response
+  );
 
   activeSessions.set(sessionId, transport);
   transport.onclose = () => {
@@ -97,12 +100,12 @@ app.post("/message", async (c) => {
   const transport = sessionId ? activeSessions.get(sessionId) : null;
 
   if (!transport) {
-    return c.text(`Session ${sessionId} not found. Isolate might have been recycled.`, 404);
+    return c.text(`Session ${sessionId} not found. Connection might have timed out or isolate recycled.`, 404);
   }
 
   try {
     const body = await c.req.json();
-    // @ts-expect-error - Hono request type mismatch
+    // @ts-expect-error - Hono request type mismatch with MCP SDK expectation
     await transport.handlePostMessage(body, c.res as unknown as Response);
     return c.text("OK");
   } catch (error) {
