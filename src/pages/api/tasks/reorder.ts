@@ -2,13 +2,14 @@
 import type { APIRoute } from "astro";
 import { ReorderTasksDtoSchema } from "@/lib/schemas/task.schemas";
 import { TaskService } from "@/lib/services/task.service";
-import { createSupabaseServer } from "@/db/supabase.client";
 import { AuthorizationError, InvalidStateError, TaskNotFoundError } from "@/lib/errors";
 
 export const prerender = false;
 
-export const POST: APIRoute = async ({ request, locals, cookies }) => {
-  const { user } = locals;
+export const POST: APIRoute = async ({ request, locals }) => {
+  const { user, aiProjectId, supabase } = locals;
+
+  // Basic auth check - middleware ensures 'user' is present if logged in or API key is valid
   if (!user) {
     return new Response(JSON.stringify({ message: "Unauthorized" }), { status: 401 });
   }
@@ -29,11 +30,12 @@ export const POST: APIRoute = async ({ request, locals, cookies }) => {
     }
 
     const validatedBody = validation.data;
-    const supabase = createSupabaseServer({ cookies, headers: request.headers });
 
-    // 2. Call the service to reorder tasks
+    // 2. Initialize Service with the client provided by middleware (handles both Session and API Key contexts)
     const taskService = new TaskService(supabase);
-    await taskService.reorderTasks(user.id, validatedBody);
+
+    // 3. Call the service to reorder tasks
+    await taskService.reorderTasks(validatedBody, { userId: user.id, aiProjectId });
 
     return new Response(null, { status: 204 });
   } catch (error) {
