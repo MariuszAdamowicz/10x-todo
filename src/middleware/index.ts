@@ -42,6 +42,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
     // Attach the project and owner info to locals for use in API endpoints.
     context.locals.user = { id: project.user_id };
     context.locals.aiProjectId = project.id;
+    // Use the admin client for API Key requests to bypass RLS, relying on service logic for isolation.
+    context.locals.supabase = supabaseAdmin;
     return next();
   }
 
