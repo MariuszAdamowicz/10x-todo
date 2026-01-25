@@ -22,7 +22,7 @@ export const GET: APIRoute = async ({ locals, cookies, request }) => {
     });
   }
 
-  const supabase = createSupabaseServer({ cookies, headers: request.headers });
+  const supabase = createSupabaseServer({ cookies, headers: request.headers, locals });
 
   try {
     const projectService = new ProjectService(supabase);
@@ -61,7 +61,7 @@ export const POST: APIRoute = async ({ request, locals, cookies }) => {
     });
   }
 
-  const supabase = createSupabaseServer({ cookies, headers: request.headers });
+  const supabase = createSupabaseServer({ cookies, headers: request.headers, locals });
 
   try {
     const projectService = new ProjectService(supabase);

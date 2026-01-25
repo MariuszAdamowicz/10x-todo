@@ -38,9 +38,11 @@ export const createSupabaseServer = (context: {
   cookies: AstroCookies;
   headers: Headers;
   env?: Record<string, string | undefined>;
+  locals?: { runtime?: { env: Record<string, string | undefined> } };
 }) => {
-  const supabaseUrl = context.env?.SUPABASE_URL || import.meta.env.SUPABASE_URL;
-  const supabaseAnonKey = context.env?.SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY;
+  const env = context.env || context.locals?.runtime?.env || import.meta.env;
+  const supabaseUrl = env.SUPABASE_URL;
+  const supabaseAnonKey = env.SUPABASE_ANON_KEY;
 
   return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
     cookieOptions,

@@ -29,7 +29,7 @@ export const POST: APIRoute = async ({ request, locals, cookies }) => {
     }
 
     const validatedBody = validation.data;
-    const supabase = createSupabaseServer({ cookies, headers: request.headers });
+    const supabase = createSupabaseServer({ cookies, headers: request.headers, locals });
 
     // 2. Call the service to reorder tasks
     const taskService = new TaskService(supabase);
