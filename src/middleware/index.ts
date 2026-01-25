@@ -11,7 +11,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   // Cloudflare runtime environment variables
   const runtime = (locals as { runtime?: { env: Record<string, string | undefined> } }).runtime;
-  const env = runtime?.env || import.meta.env;
+  const env = runtime?.env;
 
   // This client is for user session management and is scoped to the user.
   const supabase = createSupabaseServer({ cookies, headers: request.headers, env });
@@ -20,9 +20,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // API key authentication takes precedence for API routes.
   const apiKey = request.headers.get("X-API-Key");
   if (url.pathname.startsWith("/api/") && apiKey) {
+    const supabaseUrl = env?.SUPABASE_URL || import.meta.env.SUPABASE_URL;
+    const supabaseServiceRoleKey = env?.SUPABASE_SERVICE_ROLE_KEY || import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
+
     // This admin client bypasses RLS to look up the project by API key.
     // It should only be used for this purpose.
-    const supabaseAdmin = createClient<Database>(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+    const supabaseAdmin = createClient<Database>(supabaseUrl, supabaseServiceRoleKey);
 
     const { data: project, error } = await supabaseAdmin
       .from("projects")

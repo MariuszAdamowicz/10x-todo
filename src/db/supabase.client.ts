@@ -39,8 +39,10 @@ export const createSupabaseServer = (context: {
   headers: Headers;
   env?: Record<string, string | undefined>;
 }) => {
-  const env = context.env || import.meta.env;
-  return createServerClient<Database>(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
+  const supabaseUrl = context.env?.SUPABASE_URL || import.meta.env.SUPABASE_URL;
+  const supabaseAnonKey = context.env?.SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY;
+
+  return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
     cookieOptions,
     cookies: {
       // The `getAll` method is used to read all cookies from the request.
