@@ -115,12 +115,9 @@ jobs:
     steps:
       - name: Display URLs
         run: |
-          echo "## 🚀 Deployment Results" >> $GITHUB_STEP_SUMMARY
+          echo "## Deployment Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Service | Status | URL |" >> $GITHUB_STEP_SUMMARY
           echo "| :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Frontend App** | ${{ needs.deploy.result }} | ${{ needs.deploy.outputs.deployment-url }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **MCP Server** | ${{ needs.deploy-mcp.result }} | ${{ needs.deploy-mcp.outputs.deployment-url }}/sse |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "> **Note:** The MCP Server URL above is your public endpoint for Cursor/Claude. Ensure 
-TODO_API_KEY is set in the Worker secrets."
+          echo "| Frontend | ${{ needs.deploy.result }} | ${{ needs.deploy.outputs.deployment-url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| MCP | ${{ needs.deploy-mcp.result }} | ${{ needs.deploy-mcp.outputs.deployment-url }}/sse |" >> $GITHUB_STEP_SUMMARY
