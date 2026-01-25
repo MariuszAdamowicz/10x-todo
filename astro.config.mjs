@@ -5,21 +5,22 @@ import sitemap from "@astrojs/sitemap";
 import tailwindcss from "@tailwindcss/vite";
 import cloudflare from "@astrojs/cloudflare";
 
+const isBuild = process.argv.includes("build");
+
 // https://astro.build/config
-export default defineConfig(({ command }) => ({
+export default defineConfig({
   output: "server",
   integrations: [react(), sitemap()],
   server: { port: 3000 },
   vite: {
     plugins: [tailwindcss()],
     resolve: {
-      alias:
-        command === "build"
-          ? {
-              "react-dom/server": "react-dom/server.edge",
-            }
-          : {},
+      alias: isBuild
+        ? {
+            "react-dom/server": "react-dom/server.edge",
+          }
+        : {},
     },
   },
   adapter: cloudflare(),
-}));
+});
