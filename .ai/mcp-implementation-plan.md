@@ -1,142 +1,77 @@
-### Plan Implementacji Serwera MCP (10x-Todo)
+### Plan Implementacji Serwera MCP (10x-Todo) - Wersja HTTP
 
-#### 1. Struktura Projektu
+#### 1. Architektura
 
-Serwer MCP zostanie zaimplementowany jako niezależny moduł wewnątrz istniejącego katalogu `mcp/` w repozytorium (monorepo). Będzie to aplikacja Node.js wykorzystująca TypeScript.
+Serwer MCP został zrefaktoryzowany z aplikacji opartej na `stdio` do standardowej usługi HTTP opartej na `Express.js`. Zapewnia to większą elastyczność i łatwość integracji z różnymi klientami AI, w tym z tymi, które nie wspierają uruchamiania lokalnych procesów.
 
-**Proponowana struktura plików:**
+**Kluczowe zmiany:**
+- **Protokół:** Zmiana z `stdio` na `HTTP/S`.
+- **Framework:** Użycie `Express.js` do obsługi zapytań.
+- **Konfiguracja:** Parametry (`apiKey`, `apiUrl`) są przekazywane dynamicznie w ścieżce URL, a nie przez zmienne środowiskowe.
+- **Stanowość:** Serwer jest bezstanowy (stateless). Każde zapytanie HTTP jest w pełni niezależne i inicjalizuje kontekst MCP na nowo.
+
+#### 2. Struktura Projektu
+
+Struktura plików pozostaje w dużej mierze zgodna z pierwotnym planem, z następującymi modyfikacjami:
+- Usunięto `src/config.ts`.
+- Zmodyfikowano `src/index.ts` na serwer Express.
+- Zmodyfikowano `src/api-client.ts` do obsługi dynamicznej konfiguracji.
+
 ```text
-mcp/
-├── package.json          # Zależności: @modelcontextprotocol/sdk, zod, axios/fetch
-├── tsconfig.json         # Konfiguracja TS (ESM, strict)
+mcp-server/
+├── package.json          # Zależności: @modelcontextprotocol/sdk, express, etc.
+├── tsconfig.json         # Konfiguracja TS
+├── README.md             # NOWA DOKUMENTACJA
 ├── src/
-│   ├── index.ts          # Punkt wejścia: inicjalizacja serwera i transportu stdio
-│   ├── config.ts         # Walidacja zmiennych środowiskowych przekazanych przez klienta
-│   ├── types.ts          # Współdzielone typy TypeScript (DTOs z głównego API)
-│   ├── api-client.ts     # Wrapper na fetch z obsługą autentykacji i błędów
+│   ├── index.ts          # Główny plik z serwerem Express
+│   ├── index.test.ts     # Testy dla serwera HTTP
+│   ├── types.ts          # Współdzielone typy
+│   ├── api-client.ts     # Wrapper na fetch z dynamiczną konfiguracją
 │   ├── tools/
-│   │   ├── index.ts      # Rejestracja wszystkich narzędzi
-│   │   ├── read.ts       # Narzędzia do odczytu (get_task_hierarchy, list_delegated)
-│   │   └── write.ts      # Narzędzia do zapisu (create, update, propose)
+│   │   ├── index.ts
+│   │   ├── read.ts
+│   │   └── write.ts
 │   ├── resources/
-│   │   └── index.ts      # Definicje zasobów (todo://tasks/...)
+│   │   └── index.ts
 │   └── prompts/
-│       └── index.ts      # Definicje promptów (10x-assistant)
+│       └── index.ts
 ```
 
-#### 2. Kluczowe Moduły
+#### 3. API Endpoint
 
-*   **`src/index.ts`**:
-    *   Inicjalizacja `McpServer` z `@modelcontextprotocol/sdk/server/mcp.js`.
-    *   Inicjalizacja `StdioServerTransport`.
-    *   Podłączenie modułów tools, resources i prompts.
-    *   Obsługa sygnałów zamknięcia procesu.
+Serwer udostępnia jeden główny endpoint do komunikacji z MCP oraz endpoint do monitorowania stanu.
 
-*   **`src/config.ts`**:
-    *   Odpowiedzialny za pobranie i walidację `TODO_API_KEY` oraz `TODO_API_URL` z `process.env`.
-    *   **Kluczowa zmiana**: Moduł ten musi rzucić wyraźny błąd, jeśli klucz nie zostanie dostarczony przez proces nadrzędny (Klienta MCP), co wymusza poprawną konfigurację po stronie klienta.
+*   **Endpoint:** `POST /:apiKey/:encodedApiUrl/mcp`
+    *   **Metoda:** `POST`
+    *   **Parametry w ścieżce:**
+        *   `apiKey` (string, UUID): Klucz API wygenerowany w aplikacji 10x-Todo.
+        *   `encodedApiUrl` (string, base64): Adres URL głównego API aplikacji 10x-Todo, zakodowany w Base64.
+    *   **Ciało zapytania (`body`):** Standardowy obiekt żądania MCP (`McpRequest`).
+    *   **Odpowiedź:** Standardowy obiekt odpowiedzi MCP (`McpResponse`).
 
-*   **`src/api-client.ts`**:
-    *   Klasa lub zestaw funkcji do komunikacji z REST API aplikacji 10x-Todo.
-    *   Pobiera klucz API dynamicznie z konfiguracji (pozwala to na uruchomienie wielu instancji serwera z różnymi kluczami).
-    *   **Kluczowa funkcja**: `safeFetch` – przechwytuje błędy HTTP (4xx, 5xx) i tłumaczy je na czytelne komunikaty tekstowe.
+*   **Endpoint:** `GET /health`
+    *   **Metoda:** `GET`
+    *   **Odpowiedź:** Status `200 OK` z tekstem `OK`. Służy do `HEALTHCHECK` w Dockerze.
 
-*   **`src/tools/`**:
-    *   Modularyzacja narzędzi. Każde narzędzie eksportuje definicję zawierającą nazwę, opis, schemat Zod i handler.
+#### 4. Konfiguracja Klienta AI
 
-#### 3. Definicje Narzędzi (Tools)
+Klient AI (np. Gemini CLI, Cursor) musi być skonfigurowany tak, aby wysyłał zapytania na dynamicznie zbudowany adres URL.
 
-Poniżej znajdują się szczegółowe specyfikacje narzędzi. Wszystkie identyfikatory są typu UUID.
-
-*   **Narzędzie: `get_task_hierarchy`**
-    *   **Opis**: Pobiera pełną strukturę (drzewo) wszystkich zadań w projekcie.
-    *   **Schemat Wejściowy (Zod)**: `{}` (brak parametrów).
-    *   **Logika `execute`**: `GET /api/tasks` -> zwraca JSON.
-    *   **Opakowanie Wyniku**: `{ content: [{ type: "text", text: JSON.stringify(tasks, null, 2) }] }`
-
-*   **Narzędzie: `list_delegated_tasks`**
-    *   **Opis**: Pobiera listę zadań bezpośrednio przypisanych do asystenta AI (`is_delegated: true`).
-    *   **Schemat Wejściowy (Zod)**: `{}` (brak parametrów).
-    *   **Logika `execute`**: `GET /api/tasks?delegated=true`.
-    *   **Opakowanie Wyniku**: `{ content: [{ type: "text", text: JSON.stringify(delegatedTasks, null, 2) }] }`
-
-*   **Narzędzie: `create_subtask`**
-    *   **Opis**: Tworzy nowe pod-zadanie.
-    *   **Schemat Wejściowy (Zod)**:
-        ```typescript
-        z.object({
-          parentId: z.string().uuid(),
-          title: z.string().min(1),
-          description: z.string().optional()
-        })
-        ```
-    *   **Logika `execute`**: `POST /api/tasks` z `{ parent_id, title, description }`.
-
-*   **Narzędzie: `update_subtask_status`**
-    *   **Opis**: Aktualizuje status pod-zadania stworzonego przez AI.
-    *   **Schemat Wejściowy (Zod)**:
-        ```typescript
-        z.object({
-          taskId: z.string().uuid(),
-          status: z.enum(['todo', 'in_progress', 'done', 'cancelled'])
-        })
-        ```
-    *   **Logika `execute`**: `PATCH /api/tasks/{taskId}` z `{ status }`.
-
-*   **Narzędzie: `propose_task_resolution`**
-    *   **Opis**: Zgłasza człowiekowi zakończenie zadania delegowanego lub prosi o anulowanie.
-    *   **Schemat Wejściowy (Zod)**:
-        ```typescript
-        z.object({
-          taskId: z.string().uuid(),
-          status: z.enum(['done', 'cancelled']),
-          comment: z.string().min(5)
-        })
-        ```
-    *   **Logika `execute`**: `POST /api/tasks/{taskId}/propose-status` z `{ status, comment }`.
-
-#### 4. Definicje Zasobów (Resources)
-
-*   **Zasób: `todo://tasks/delegated`** (JSON) - Lista zadań priorytetowych.
-*   **Zasób: `todo://tasks/all`** (JSON) - Pełny kontekst projektu.
-
-#### 5. Definicje Promptów
-
-*   **Prompt: `10x-assistant`**: System prompt definiujący rolę Junior Developera, nakazujący sprawdzanie zadań delegowanych i komentowanie propozycji.
-
-#### 6. Konfiguracja Serwera i Wdrożenia
-
-Kluczową zmianą jest przeniesienie odpowiedzialności za `API_KEY` na klienta (rejestrację serwera).
-
-*   **Wymagane Zmienne Środowiskowe (dostarczane przez Klienta MCP)**:
-    *   `TODO_API_URL`: Adres API (np. `http://localhost:3000`).
-    *   `TODO_API_KEY`: Unikalny klucz API dla danej sesji/klienta.
-
-*   **Przykład konfiguracji klienta (np. `claude_desktop_config.json`)**:
-    ```json
-    {
-      "mcpServers": {
-        "10x-todo": {
-          "command": "node",
-          "args": ["/absolute/path/to/10x-todo/mcp/dist/index.js"],
-          "env": {
-            "TODO_API_URL": "http://localhost:3000",
-            "TODO_API_KEY": "KLUCZ_API_GENEROWANY_W_APLIKACJI"
-          }
-        }
-      }
-    }
+*   **Przykład adresu URL dla klienta:**
     ```
-    *Dzięki temu podejściu, ten sam kod serwera może być zarejestrowany wielokrotnie z różnymi kluczami (np. dla różnych projektów lub użytkowników).*
+    http://localhost:8081/d1a2b3c4-e5f6-a7b8-c9d0-e1f2a3b4c5d6/aHR0cDovL2xvY2FsaG9zdDo4MDgwL2FwaQ==/mcp
+    ```
+    Gdzie:
+    *   `d1a2b3c4-...` to `apiKey`.
+    *   `aHR0cDovL...` to `http://localhost:8080/api` zakodowane w Base64.
 
-*   **Uruchamianie**: `node dist/index.js` (skompilowany JS).
+#### 5. Uruchamianie i Wdrożenie
 
-#### 7. Obsługa Błędów
+*   **Lokalnie:** Serwer jest częścią `docker-compose.yml` i jest uruchamiany razem z główną aplikacją.
+*   **Produkcyjnie:** Obraz Docker jest budowany i wdrażany na platformie hostingowej (np. DigitalOcean).
+*   **Port:** Serwer nasłuchuje na porcie zdefiniowanym w zmiennej środowiskowej `PORT` (domyślnie `8081`).
 
-*   Błędy HTTP (401/403) z API będą tłumaczone na: *"Odmowa dostępu. Sprawdź poprawność klucza API w konfiguracji klienta MCP."*
-*   Serwer nie powinien się crashować przy błędnym kluczu, lecz zwracać błąd wewnątrz wywołania narzędzia (`ToolError`).
+#### 6. Strategia Testowania
 
-#### 8. Strategia Testowania
-
-*   **Testy manualne**: Uruchomienie z `TODO_API_KEY=test-key npx @modelcontextprotocol/inspector node dist/index.js`.
-*   **Weryfikacja**: Sprawdzenie czy endpointy są wywoływane z poprawnym nagłówkiem `X-API-Key` pobranym ze zmiennych środowiskowych.
+*   Testy jednostkowe i integracyjne zaimplementowane przy użyciu `vitest` i `supertest`.
+*   Testy weryfikują działanie endpointu `/health` oraz poprawne parsowanie parametrów z URL i obsługę błędów w głównym endpoincie MCP.
