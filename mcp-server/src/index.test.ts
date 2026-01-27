@@ -16,7 +16,7 @@ app.post("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
   try {
     apiUrl = Buffer.from(encodedApiUrl, "base64").toString("utf-8");
     new URL(apiUrl);
-  } catch () {
+  } catch (_error) {
     return res.status(400).json({ error: "Invalid Base64 URL" });
   }
 

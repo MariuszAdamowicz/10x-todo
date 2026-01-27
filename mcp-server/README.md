@@ -39,16 +39,19 @@ Główny endpoint do komunikacji z protokołem MCP.
 **Przykład użycia z `curl`:**
 
 Załóżmy, że:
+
 - `API_KEY` to `d1a2b3c4-e5f6-a7b8-c9d0-e1f2a3b4c5d6`
 - `API_URL` to `http://host.docker.internal:8080/api`
 
 Najpierw kodujemy URL:
+
 ```bash
  echo -n "http://host.docker.internal:8080/api" | base64
 # Wynik: aHR0cDovL2hvc3QuZG9ja2VyLmludGVybmFsOjgwODAvYXBp
 ```
 
 Teraz wysyłamy zapytanie (przykładowe ciało `McpRequest`):
+
 ```bash
 curl -X POST \
   http://localhost:8081/d1a2b3c4-e5f6-a7b8-c9d0-e1f2a3b4c5d6/aHR0cDovL2hvc3QuZG9ja2VyLmludGVybmFsOjgwODAvYXBp/mcp \

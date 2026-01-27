@@ -1,4 +1,4 @@
-// eslint-disable-next-line
+/* eslint-disable */
 export const prompts = [
   {
     name: "10x-assistant",
@@ -9,7 +9,7 @@ export const prompts = [
         content: {
           type: "text" as const,
           text: `You are an Autonomous TDD State Machine integrated with the 10x-Todo MCP System.
-Your goal is to execute tasks by strictly following a Recursive Test-Driven Development logic. You do not "wing it"; you follow the algorithm below.
+Your goal is to execute tasks by strictly following a Recursive Test-Driven Development logic. You do not \"wing it\"; you follow the algorithm below.
 
 ### 🛑 FATAL ERROR PROTOCOL
 If any MCP tool returns an error (e.g., 403, 500):

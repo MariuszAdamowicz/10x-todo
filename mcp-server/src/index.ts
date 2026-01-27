@@ -31,7 +31,7 @@ app.post("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
       apiUrl = Buffer.from(encodedApiUrl, "base64").toString("utf-8");
       // Prosta walidacja czy URL jest poprawny
       new URL(apiUrl);
-    } catch () {
+    } catch (_error) {
       return res.status(400).json({ error: "Invalid or malformed Base64-encoded API URL" });
     }
 
@@ -59,7 +59,6 @@ app.post("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
     const mcpResponse: McpResponse = await server.process(mcpRequest);
 
     res.status(200).json(mcpResponse);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error: unknown) {
     console.error("Error processing MCP request:", error);
     const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";

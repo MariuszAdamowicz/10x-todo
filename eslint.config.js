@@ -16,11 +16,26 @@ const __dirname = path.dirname(__filename);
 const gitignorePath = path.resolve(__dirname, ".gitignore");
 
 const baseConfig = tseslint.config({
+  files: ["**/*.{js,jsx,ts,tsx}"],
   extends: [eslint.configs.recommended, tseslint.configs.strict, tseslint.configs.stylistic],
+  languageOptions: {
+    parserOptions: {
+      project: ["./tsconfig.json", "./mcp-server/tsconfig.json"],
+      tsconfigRootDir: __dirname,
+    },
+  },
   rules: {
     "no-console": "warn",
     "no-unused-vars": "off",
     "@typescript-eslint/unified-signatures": "off", // Temporarily disabled due to a bug in the plugin
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        argsIgnorePattern: "^_",
+        varsIgnorePattern: "^_",
+        caughtErrorsIgnorePattern: "^_",
+      },
+    ],
   },
 });
 
@@ -60,7 +75,7 @@ const reactConfig = tseslint.config({
 export default tseslint.config(
   includeIgnoreFile(gitignorePath),
   {
-    ignores: ["src/layouts/Layout.astro"],
+    ignores: ["src/layouts/Layout.astro", "mcp-server/src/prompts/index.ts"],
   },
   baseConfig,
   jsxA11yConfig,
