@@ -1,0 +1,28 @@
+# Pliki konfiguracyjne i logi
+.DS_Store
+.env
+.env.*
+!.env.example
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Katalogi
+.git
+.github
+.husky
+.astro
+.vscode
+.wrangler
+dist
+build
+node_modules
+playwright-report
+test-results
+
+# Pliki tymczasowe i cache
+.gemini/tmp
+
+# Pliki systemowe
+*.swp

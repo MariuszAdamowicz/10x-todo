@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { apiClient } from "../api-client.js";
+import { safeFetch } from "../api-client.js";
+
+// Mapowanie statusów tekstowych MCP na status_id z bazy danych
+const STATUS_MAP: Record<string, number> = {
+  todo: 1,
+  done: 2,
+  cancelled: 3,
+};
 
 export const createSubtaskTool = {
   name: "create_subtask",
@@ -11,7 +18,14 @@ export const createSubtaskTool = {
     description: z.string().optional().describe("A detailed description of the subtask"),
   }),
   execute: async (args: { parentId: string; title: string; description?: string }) => {
-    const result = await apiClient.createSubtask(args);
+    const result = await safeFetch("/tasks", {
+      method: "POST",
+      body: JSON.stringify({
+        parent_id: args.parentId,
+        title: args.title,
+        description: args.description,
+      }),
+    });
     return {
       content: [
         {
@@ -31,7 +45,11 @@ export const updateSubtaskStatusTool = {
     status: z.enum(["todo", "done", "cancelled"]).describe("The new status"),
   }),
   execute: async (args: { taskId: string; status: string }) => {
-    const result = await apiClient.updateSubtaskStatus(args.taskId, args.status);
+    const statusId = STATUS_MAP[args.status];
+    const result = await safeFetch(`/tasks/${args.taskId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status_id: statusId }),
+    });
     return {
       content: [
         {
@@ -53,7 +71,11 @@ export const proposeTaskResolutionTool = {
     comment: z.string().min(5).describe("A comment explaining the work done or reason for cancellation"),
   }),
   execute: async (args: { taskId: string; status: string; comment: string }) => {
-    const result = await apiClient.proposeTaskResolution(args.taskId, args.status, args.comment);
+    const statusId = STATUS_MAP[args.status];
+    const result = await safeFetch(`/tasks/${args.taskId}/propose-status`, {
+      method: "POST",
+      body: JSON.stringify({ new_status_id: statusId, comment: args.comment }),
+    });
     return {
       content: [
         {
@@ -79,7 +101,10 @@ export const reorderTasksTool = {
       .describe("List of tasks with their new order"),
   }),
   execute: async (args: { tasks: { id: string; order: number }[] }) => {
-    const result = await apiClient.reorderTasks(args.tasks);
+    const result = await safeFetch("/tasks/reorder", {
+      method: "POST",
+      body: JSON.stringify({ tasks: args.tasks }),
+    });
     return {
       content: [
         {
