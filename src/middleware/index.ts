@@ -16,12 +16,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // API key authentication takes precedence for API routes.
   const apiKey = request.headers.get("X-API-Key");
   if (url.pathname.startsWith("/api/") && apiKey) {
+    const supabaseUrl = process.env.SUPABASE_URL || import.meta.env.SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
+
     // This admin client bypasses RLS to look up the project by API key.
     // It should only be used for this purpose.
-    const supabaseAdmin = createClient<Database>(
-      import.meta.env.SUPABASE_URL,
-      import.meta.env.SUPABASE_SERVICE_ROLE_KEY
-    );
+    const supabaseAdmin = createClient<Database>(supabaseUrl, supabaseServiceKey);
 
     const { data: project, error } = await supabaseAdmin
       .from("projects")

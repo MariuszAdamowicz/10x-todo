@@ -1,68 +1,222 @@
 import express from "express";
-import { McpServer, McpRequest, McpResponse } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { zodToJsonSchema } from "zod-to-json-schema";
+import { readFileSync } from "fs";
+import { join } from "path";
+import { fileURLToPath } from "url";
 import { tools } from "./tools/index.js";
 import { resources } from "./resources/index.js";
-import { prompts } from "./prompts/index.js";
 import { setApiClientConfig } from "./api-client.js";
 
 const app = express();
-// Używamy wbudowanego parsera JSON w Express
 app.use(express.json());
 
 const PORT = process.env.PORT || 8081;
+
+// Wczytywanie promptów z JSON
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
+const promptsPath = join(__dirname, "prompts", "prompts.json");
+const prompts = JSON.parse(readFileSync(promptsPath, "utf-8"));
+
+// ZAAWANSOWANY PROTOKÓŁ TDD - Wersja 2.4 (Hybrydowy: TDD + Operational)
+const FULL_PROTOCOL_ENFORCEMENT = `
+============== 🛑 STRICT WORKFLOW ENFORCEMENT 🛑 ==============
+YOU ARE AN AUTONOMOUS AGENT. ALL YOUR ACTIONS MUST BE TRACKED IN MCP.
+
+### 📋 TASK CLASSIFICATION
+1. **CODE TASKS:** Follow the TDD Loop: RED -> GREEN -> REFACTOR.
+2. **OPERATIONAL TASKS:** Git (commits/pushes), Setup (install/config), Cleanup.
+   - These MUST be on the MCP list.
+   - Execute action -> Mark task as 'done' -> CONTINUE.
+
+### ⚙️ THE AUTONOMOUS LOOP
+Continue until ALL delegated tasks are resolved. For every interaction:
+
+#### STEP 1: LOAD & HYGIENE (The "Zero Waste" Rule)
+- Call 'list_delegated_tasks' and 'get_task_hierarchy'.
+- **CANCEL DUPLICATES:** If you find a task that is a duplicate of a completed or ongoing task, call 'update_subtask_status' with status 'cancelled' immediately.
+- **IDENTIFY NEXT:** Pick the TOP-MOST active task based on priorities.
+
+#### STEP 2: EXECUTE (The "One-Step-Ahead" Rule)
+- **IF CODE TASK:** Perform exactly ONE TDD transition (INITIAL->RED, RED->GREEN, or GREEN->REFACTOR).
+  - **REFACTOR IS MANDATORY:** You are NOT ALLOWED to skip the REFACTOR phase after GREEN.
+- **IF OPERATIONAL TASK:** Perform the action (e.g. git commit) and mark as 'done'.
+
+#### STEP 3: MCP UPDATE & STOP
+- Update MCP state -> call 'reorder_tasks' -> FINISH TURN.
+
+### 📊 PRIORITY RULES
+1. REFACTOR (Highest) - Clean code is priority.
+2. GREEN - Fix failing tests.
+3. RED - New specs.
+4. Operational/Initial (Lowest) - Git, Setup, new features.
+
+### 📝 CRITICAL CONSTRAINTS
+- **NO GHOST WORK:** Every file edit or Git command MUST have a corresponding MCP task.
+- **NO BATCHING:** Do not combine RED and GREEN. Do not combine Code and Git in one turn.
+- **SCAN FIRST:** Always look at existing tasks before creating new ones.
+===============================================================
+`;
+
+// Typy JSON-RPC
+interface JsonRpcRequest {
+  jsonrpc: "2.0";
+  method: string;
+  params?: any;
+  id?: string | number | null;
+}
 
 // Endpoint do sprawdzania stanu serwera (health check)
 app.get("/health", (_req, res) => {
   res.status(200).send("OK");
 });
 
-// Główny endpoint MCP
+// Główny endpoint MCP - obsługa JSON-RPC
 app.post("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
-  try {
-    const { apiKey, encodedApiUrl } = req.params;
-    const mcpRequest = req.body as McpRequest;
+  const { apiKey, encodedApiUrl } = req.params;
+  const requestBody = req.body as JsonRpcRequest;
+  const requestId = requestBody.id ?? null;
 
+  try {
     if (!apiKey || !encodedApiUrl) {
-      return res.status(400).json({ error: "Missing apiKey or encodedApiUrl in path" });
+      throw new Error("Missing apiKey or encodedApiUrl in path");
     }
 
     let apiUrl;
     try {
       apiUrl = Buffer.from(encodedApiUrl, "base64").toString("utf-8");
-      // Prosta walidacja czy URL jest poprawny
       new URL(apiUrl);
-    } catch (_error) {
-      return res.status(400).json({ error: "Invalid or malformed Base64-encoded API URL" });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      throw new Error("Invalid or malformed Base64-encoded API URL");
     }
 
-    // Ustawienie konfiguracji klienta API dla tego konkretnego zapytania
+    // Ustawienie konfiguracji klienta API
     setApiClientConfig({ apiKey, apiUrl });
 
-    // Inicjalizacja serwera MCP dla każdego zapytania, aby zapewnić izolację
-    const server = new McpServer({
-      name: "10x-todo-mcp-http",
-      version: "1.1.0",
+    let result: any;
+
+    switch (requestBody.method) {
+      case "tools/list":
+        result = {
+          tools: tools.map((t) => ({
+            name: t.name,
+            description: t.description,
+            // Konwersja Zod Schema na JSON Schema wymagany przez MCP
+            inputSchema: zodToJsonSchema(t.inputSchema),
+          })),
+        };
+        break;
+
+      case "tools/call": {
+        const { name, arguments: args } = requestBody.params;
+        const tool = tools.find((t) => t.name === name);
+        if (!tool) {
+          throw new Error(`Tool not found: ${name}`);
+        }
+        
+        // Wykonanie narzędzia
+        const toolResult = await tool.execute(args);
+        
+        // Wstrzykiwanie PEŁNEGO protokołu do każdej odpowiedzi tekstowej narzędzia
+        if (toolResult && Array.isArray(toolResult.content)) {
+          toolResult.content.push({
+            type: "text",
+            text: FULL_PROTOCOL_ENFORCEMENT
+          });
+        }
+        
+        result = toolResult;
+        break;
+      }
+
+      case "resources/list":
+        result = {
+          resources: resources.map((r) => ({
+            uri: r.uri,
+            name: r.name,
+            description: r.description,
+            mimeType: r.mimeType,
+          })),
+        };
+        break;
+
+      case "resources/read": {
+        const { uri } = requestBody.params;
+        const resource = resources.find((r) => r.uri === uri);
+        if (!resource) {
+          throw new Error(`Resource not found: ${uri}`);
+        }
+        const contents = await resource.read();
+        result = { contents };
+        break;
+      }
+
+      case "prompts/list":
+        result = {
+          prompts: prompts.map((p: any) => ({
+            name: p.name,
+            description: p.description,
+          })),
+        };
+        break;
+
+      case "prompts/get": {
+        const { name } = requestBody.params;
+        const prompt = prompts.find((p: any) => p.name === name);
+        if (!prompt) {
+          throw new Error(`Prompt not found: ${name}`);
+        }
+        result = {
+          description: prompt.description,
+          messages: prompt.messages,
+        };
+        break;
+      }
+      
+      // Obsługa inicjalizacji (handshake)
+      case "initialize":
+        result = {
+          protocolVersion: "2024-11-05",
+          capabilities: {
+            tools: {},
+            resources: {},
+            prompts: {},
+          },
+          serverInfo: {
+            name: "10x-todo-mcp-http",
+            version: "1.3.4",
+          },
+        };
+        break;
+
+      case "notifications/initialized":
+        result = {};
+        break;
+        
+      case "ping":
+        result = {};
+        break;
+
+      default:
+        throw new Error(`Method not supported: ${requestBody.method}`);
+    }
+
+    res.status(200).json({
+      jsonrpc: "2.0",
+      id: requestId,
+      result,
     });
-
-    // Rejestracja narzędzi, zasobów i promptów
-    tools.forEach((tool) => server.tool(tool.name, tool.description, tool.inputSchema.shape, tool.execute));
-    resources.forEach((resource) =>
-      server.resource(resource.name, resource.uri, async () => ({ contents: await resource.read() }))
-    );
-    prompts.forEach((prompt) =>
-      server.prompt(prompt.name, prompt.description, async () => ({ messages: prompt.messages }))
-    );
-
-    // Ręczne przetwarzanie żądania MCP.
-    // W architekturze HTTP nie ma stałego połączenia, więc symulujemy je,
-    // bezpośrednio wywołując logikę serwera.
-    const mcpResponse: McpResponse = await server.process(mcpRequest);
-
-    res.status(200).json(mcpResponse);
   } catch (error: unknown) {
     console.error("Error processing MCP request:", error);
     const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
-    res.status(500).json({ error: "Internal Server Error", details: errorMessage });
+    res.status(200).json({
+      jsonrpc: "2.0",
+      id: requestId,
+      error: {
+        code: -32603,
+        message: errorMessage,
+      },
+    });
   }
 });
 

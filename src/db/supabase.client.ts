@@ -4,7 +4,7 @@ import type { Database } from "./database.types";
 
 export const cookieOptions: CookieOptionsWithName = {
   path: "/",
-  secure: import.meta.env.PROD, // set to true in production
+  secure: process.env.NODE_ENV === "production" || import.meta.env.PROD, // set to true in production
   httpOnly: true,
   sameSite: "lax",
 };
@@ -35,7 +35,10 @@ function parseCookieHeader(cookieHeader: string | null): { name: string; value: 
  * @returns A Supabase server client instance.
  */
 export const createSupabaseServer = (context: { cookies: AstroCookies; headers: Headers }) => {
-  return createServerClient<Database>(import.meta.env.SUPABASE_URL, import.meta.env.SUPABASE_ANON_KEY, {
+  const supabaseUrl = process.env.SUPABASE_URL || import.meta.env.SUPABASE_URL;
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY;
+
+  return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
     cookieOptions,
     cookies: {
       // The `getAll` method is used to read all cookies from the request.

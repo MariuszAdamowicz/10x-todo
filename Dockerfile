@@ -17,13 +17,22 @@ FROM node:${NODE_VERSION}-alpine AS runner
 
 WORKDIR /app
 
+# Ustawienie zmiennej środowiskowej na produkcję
+ENV NODE_ENV=production
+
 # Utworzenie użytkownika non-root do uruchomienia aplikacji
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-USER appuser
+
+# Kopiowanie plików zależności
+COPY package.json package-lock.json* ./
+
+# Instalacja tylko zależności produkcyjnych
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Kopiowanie zbudowanej aplikacji z etapu buildera
-# Adapter @astrojs/node z opcją "standalone" sam pakuje potrzebne node_modules
 COPY --from=builder /app/dist ./dist
+
+USER appuser
 
 # Zmienne środowiskowe do konfiguracji serwera
 # Aplikacja będzie nasłuchiwać na wszystkich interfejsach

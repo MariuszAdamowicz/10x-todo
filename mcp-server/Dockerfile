@@ -22,6 +22,9 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 # Kopiowanie tylko niezbędnych plików z etapu buildera
 COPY --from=builder /app/mcp-server/dist ./mcp-server/dist
+# Kopiowanie plików JSON (nie są kopiowane przez tsc)
+RUN mkdir -p ./mcp-server/dist/prompts
+COPY --from=builder /app/mcp-server/src/prompts/*.json ./mcp-server/dist/prompts/
 COPY --from=builder /app/mcp-server/package.json ./mcp-server/package.json
 COPY --from=builder /app/mcp-server/package-lock.json* ./mcp-server/
 
