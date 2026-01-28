@@ -193,27 +193,17 @@ jobs:
             echo "::warning::RENDER_DEPLOY_HOOK_URL_MCP is not set. Skipping MCP deploy."
           fi
 
-    # ------------------------------------------------------------------
-
-    # STAGE 5: SUMMARY
-
-    # ------------------------------------------------------------------
-
-    summary:
-
-      name: Pipeline Summary
-
-      needs: [deploy-app, deploy-mcp]
-
-      if: always()
-
-      runs-on: ubuntu-latest
-
-      steps:
-
-        - name: Generate Summary
-
-          run: |
+  # ------------------------------------------------------------------
+  # STAGE 5: SUMMARY
+  # ------------------------------------------------------------------
+  summary:
+    name: Pipeline Summary
+    needs: [deploy-app, deploy-mcp]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Summary
+        run: |
 
             APP_URL="${{ vars.PUBLIC_APP_URL || 'https://twoja-aplikacja.onrender.com' }}"
 
