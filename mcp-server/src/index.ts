@@ -61,8 +61,17 @@ Continue until ALL delegated tasks are resolved. For every interaction:
 interface JsonRpcRequest {
   jsonrpc: "2.0";
   method: string;
-  params?: any;
+  params?: Record<string, unknown>;
   id?: string | number | null;
+}
+
+interface Prompt {
+  name: string;
+  description?: string;
+  messages: {
+    role: string;
+    content: { type: string; text: string };
+  }[];
 }
 
 // Endpoint do sprawdzania stanu serwera (health check)
@@ -85,7 +94,7 @@ app.post("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
     try {
       apiUrl = Buffer.from(encodedApiUrl, "base64").toString("utf-8");
       new URL(apiUrl);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       throw new Error("Invalid or malformed Base64-encoded API URL");
     }
@@ -93,7 +102,7 @@ app.post("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
     // Ustawienie konfiguracji klienta API
     setApiClientConfig({ apiKey, apiUrl });
 
-    let result: any;
+    let result: unknown;
 
     switch (requestBody.method) {
       case "tools/list":
@@ -108,23 +117,29 @@ app.post("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
         break;
 
       case "tools/call": {
-        const { name, arguments: args } = requestBody.params;
+        const name = requestBody.params?.name as string;
+        const args = requestBody.params?.arguments as Record<string, unknown>;
+
+        if (!name) {
+          throw new Error("Missing tool name in params");
+        }
+
         const tool = tools.find((t) => t.name === name);
         if (!tool) {
           throw new Error(`Tool not found: ${name}`);
         }
-        
+
         // Wykonanie narzędzia
         const toolResult = await tool.execute(args);
-        
+
         // Wstrzykiwanie PEŁNEGO protokołu do każdej odpowiedzi tekstowej narzędzia
         if (toolResult && Array.isArray(toolResult.content)) {
           toolResult.content.push({
             type: "text",
-            text: FULL_PROTOCOL_ENFORCEMENT
+            text: FULL_PROTOCOL_ENFORCEMENT,
           });
         }
-        
+
         result = toolResult;
         break;
       }
@@ -141,7 +156,10 @@ app.post("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
         break;
 
       case "resources/read": {
-        const { uri } = requestBody.params;
+        const uri = requestBody.params?.uri as string;
+        if (!uri) {
+          throw new Error("Missing resource uri in params");
+        }
         const resource = resources.find((r) => r.uri === uri);
         if (!resource) {
           throw new Error(`Resource not found: ${uri}`);
@@ -153,7 +171,7 @@ app.post("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
 
       case "prompts/list":
         result = {
-          prompts: prompts.map((p: any) => ({
+          prompts: prompts.map((p: Prompt) => ({
             name: p.name,
             description: p.description,
           })),
@@ -161,8 +179,11 @@ app.post("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
         break;
 
       case "prompts/get": {
-        const { name } = requestBody.params;
-        const prompt = prompts.find((p: any) => p.name === name);
+        const name = requestBody.params?.name as string;
+        if (!name) {
+          throw new Error("Missing prompt name in params");
+        }
+        const prompt = prompts.find((p: Prompt) => p.name === name);
         if (!prompt) {
           throw new Error(`Prompt not found: ${name}`);
         }
@@ -172,7 +193,7 @@ app.post("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
         };
         break;
       }
-      
+
       // Obsługa inicjalizacji (handshake)
       case "initialize":
         result = {
@@ -192,7 +213,7 @@ app.post("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
       case "notifications/initialized":
         result = {};
         break;
-        
+
       case "ping":
         result = {};
         break;
