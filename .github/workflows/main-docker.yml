@@ -1,9 +1,16 @@
-name: Production Build & Deploy
+name: Production Pipeline
 
 on:
   workflow_dispatch: # Manual trigger
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  # ------------------------------------------------------------------
+  # STAGE 1: LINT (Global)
+  # ------------------------------------------------------------------
   lint:
     name: Lint Code
     runs-on: ubuntu-latest
@@ -23,8 +30,11 @@ jobs:
       - name: Run Lint
         run: npm run lint
 
-  unit-test:
-    name: Unit Tests
+  # ------------------------------------------------------------------
+  # STAGE 2: TESTS (Parallel)
+  # ------------------------------------------------------------------
+  test-app:
+    name: Test App (Unit)
     needs: lint
     runs-on: ubuntu-latest
     steps:
@@ -40,18 +50,46 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run Unit Tests
+      - name: Run App Unit Tests
         run: npm run test:unit -- --coverage
 
-  build-and-deploy:
-    name: Build, Push & Deploy
-    needs: [lint, unit-test]
+  test-mcp:
+    name: Test MCP Server
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      # Install root deps first (if needed) or just mcp-server deps
+      # Assuming mcp-server is self-contained for tests
+      - name: Install MCP dependencies
+        run: |
+          cd mcp-server
+          npm install
+
+      - name: Run MCP Tests
+        run: |
+          cd mcp-server
+          npm test
+
+  # ------------------------------------------------------------------
+  # STAGE 3: BUILD & PUSH (Parallel)
+  # ------------------------------------------------------------------
+  build-push-app:
+    name: Build & Push App
+    needs: [test-app] # Only depends on App tests passing
     runs-on: ubuntu-latest
     environment: production
     permissions:
       contents: read
       packages: write
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -69,7 +107,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Build and Push Main App
       - name: Build and push App image
         uses: docker/build-push-action@v6
         with:
@@ -85,7 +122,31 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Build and Push MCP Server
+  build-push-mcp:
+    name: Build & Push MCP
+    needs: [test-mcp] # Only depends on MCP tests passing
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build and push MCP image
         uses: docker/build-push-action@v6
         with:
@@ -99,21 +160,57 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Deploy Triggers
-      - name: Deploy App to Render
-        if: success()
+  # ------------------------------------------------------------------
+  # STAGE 4: DEPLOY (Parallel)
+  # ------------------------------------------------------------------
+  deploy-app:
+    name: Deploy App (Render)
+    needs: build-push-app
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Trigger Render Deploy
         run: |
           if [ -n "${{ secrets.RENDER_DEPLOY_HOOK_URL_APP }}" ]; then
             curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL_APP }}"
+            echo "✅ Deploy hook triggered for App"
           else
             echo "::warning::RENDER_DEPLOY_HOOK_URL_APP is not set. Skipping App deploy."
           fi
 
-      - name: Deploy MCP to Render
-        if: success()
+  deploy-mcp:
+    name: Deploy MCP (Render)
+    needs: build-push-mcp
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Trigger Render Deploy
         run: |
           if [ -n "${{ secrets.RENDER_DEPLOY_HOOK_URL_MCP }}" ]; then
             curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL_MCP }}"
+            echo "✅ Deploy hook triggered for MCP"
           else
             echo "::warning::RENDER_DEPLOY_HOOK_URL_MCP is not set. Skipping MCP deploy."
+          fi
+
+  # ------------------------------------------------------------------
+  # STAGE 5: SUMMARY
+  # ------------------------------------------------------------------
+  summary:
+    name: Pipeline Summary
+    needs: [deploy-app, deploy-mcp]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Status
+        run: |
+          if [ "${{ needs.deploy-app.result }}" == "success" ] && [ "${{ needs.deploy-mcp.result }}" == "success" ]; then
+            echo "🎉 Pipeline finished successfully!"
+            echo "App: Deployed 🚀"
+            echo "MCP: Deployed 🚀"
+          else
+            echo "⚠️ Pipeline finished with errors."
+            echo "App Status: ${{ needs.deploy-app.result }}"
+            echo "MCP Status: ${{ needs.deploy-mcp.result }}"
+            exit 1
           fi

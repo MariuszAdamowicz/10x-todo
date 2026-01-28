@@ -130,7 +130,8 @@ app.post("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
         }
 
         // Wykonanie narzędzia
-        const toolResult = await tool.execute(args);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const toolResult = await tool.execute(args as any);
 
         // Wstrzykiwanie PEŁNEGO protokołu do każdej odpowiedzi tekstowej narzędzia
         if (toolResult && Array.isArray(toolResult.content)) {
