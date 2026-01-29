@@ -35,7 +35,6 @@ export async function safeFetch(path: string, options: RequestInit = {}): Promis
 
     if (!response.ok) {
       const errorBody = await response.text();
-      console.error(`API Error: ${response.status} ${response.statusText}`, errorBody);
       throw new Error(`API request failed with status ${response.status}: ${errorBody}`);
     }
 
@@ -44,9 +43,9 @@ export async function safeFetch(path: string, options: RequestInit = {}): Promis
       return {};
     }
 
-    return await response.json();
+    const data = await response.json();
+    return data;
   } catch (error) {
-    console.error(`Fetch failed for URL: ${url}`, error);
     // Rzucamy błąd dalej, aby mógł być złapany przez serwer MCP
     throw error;
   }

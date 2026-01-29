@@ -109,9 +109,6 @@ app.post("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
   const { apiKey, encodedApiUrl } = req.params;
   const { method, params, id } = req.body;
 
-  // eslint-disable-next-line no-console
-  console.log(`[MCP] Method: ${method} (POST)`);
-
   try {
     const config = decodeConfig(apiKey, encodedApiUrl);
     setApiClientConfig(config);
@@ -193,14 +190,18 @@ app.post("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
         result = { tools: [], resources: [], prompts: [] };
     }
 
-    res.json({ jsonrpc: "2.0", id: id ?? null, result });
+    const response = { jsonrpc: "2.0", id: id ?? null, result };
+    res.setHeader("Content-Type", "application/json");
+    res.json(response);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
-    res.status(200).json({
+    const errorResponse = {
       jsonrpc: "2.0",
       id: id ?? null,
       error: { code: -32603, message: error.message },
-    });
+    };
+    res.setHeader("Content-Type", "application/json");
+    res.status(200).json(errorResponse);
   }
 });
 
