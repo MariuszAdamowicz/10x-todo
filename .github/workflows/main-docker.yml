@@ -67,12 +67,10 @@ jobs:
           node-version-file: ".nvmrc"
           cache: "npm"
 
-      # Install root deps first (if needed) or just mcp-server deps
-      # Assuming mcp-server is self-contained for tests
       - name: Install MCP dependencies
         run: |
           cd mcp-server
-          npm install
+          npm ci
 
       - name: Run MCP Tests
         run: |
@@ -84,7 +82,7 @@ jobs:
   # ------------------------------------------------------------------
   build-push-app:
     name: Build & Push App
-    needs: [test-app] # Only depends on App tests passing
+    needs: [test-app]
     runs-on: ubuntu-latest
     environment: production
     permissions:
@@ -124,7 +122,7 @@ jobs:
 
   build-push-mcp:
     name: Build & Push MCP
-    needs: [test-mcp] # Only depends on MCP tests passing
+    needs: [test-mcp]
     runs-on: ubuntu-latest
     environment: production
     permissions:
@@ -193,114 +191,55 @@ jobs:
             echo "::warning::RENDER_DEPLOY_HOOK_URL_MCP is not set. Skipping MCP deploy."
           fi
 
-    # ------------------------------------------------------------------
+  # ------------------------------------------------------------------
+  # STAGE 5: SUMMARY
+  # ------------------------------------------------------------------
+  summary:
+    name: Pipeline Summary
+    needs: [deploy-app, deploy-mcp]
+    if: always()
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Generate Summary
+        run: |
+          APP_URL="${{ vars.PUBLIC_APP_URL }}"
+          MCP_URL="${{ vars.PUBLIC_MCP_URL }}"
+          
+          if [ -z "$APP_URL" ]; then APP_URL="https://APP_URL_NOT_SET"; fi
+          if [ -z "$MCP_URL" ]; then MCP_URL="https://MCP_URL_NOT_SET"; fi
+          
+          ENCODED_API_URL=$(echo -n "$APP_URL" | base64 -w 0)
 
-    # STAGE 5: SUMMARY
-
-    # ------------------------------------------------------------------
-
-    summary:
-
-      name: Pipeline Summary
-
-      needs: [deploy-app, deploy-mcp]
-
-      if: always()
-
-      runs-on: ubuntu-latest
-
-      environment: production
-
-      steps:
-
-        - name: Generate Summary
-
-          run: |
-
-            APP_URL="${{ vars.PUBLIC_APP_URL }}"
-
-            MCP_URL="${{ vars.PUBLIC_MCP_URL }}"
-
-            
-
-            # Default fallback if vars are missing (for safety)
-
-            if [ -z "$APP_URL" ]; then APP_URL="https://APP_URL_NOT_SET"; fi
-
-            if [ -z "$MCP_URL" ]; then MCP_URL="https://MCP_URL_NOT_SET"; fi
-
-            
-
-            # Base64 encode the App URL for the configuration path
-
-            # -w 0 prevents line wrapping in output
-
-            ENCODED_API_URL=$(echo -n "$APP_URL" | base64 -w 0)
-
-  
-
-            echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
-
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.deploy-app.result }}" == "success" ]; then
+            echo "- **App Status:** ✅ Success" >> $GITHUB_STEP_SUMMARY
+            echo "- **App URL:** [$APP_URL]($APP_URL)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **App Status:** ❌ Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.deploy-mcp.result }}" == "success" ]; then
+            echo "- **MCP Status:** ✅ Success" >> $GITHUB_STEP_SUMMARY
+            echo "- **MCP URL:** [$MCP_URL]($MCP_URL)" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-
-            
-
-            if [ "${{ needs.deploy-app.result }}" == "success" ]; then
-
-              echo "- **App Status:** ✅ Success" >> $GITHUB_STEP_SUMMARY
-
-              echo "- **App URL:** [$APP_URL]($APP_URL)" >> $GITHUB_STEP_SUMMARY
-
-            else
-
-              echo "- **App Status:** ❌ Failed" >> $GITHUB_STEP_SUMMARY
-
-            fi
-
-            
-
-            if [ "${{ needs.deploy-mcp.result }}" == "success" ]; then
-
-              echo "- **MCP Status:** ✅ Success" >> $GITHUB_STEP_SUMMARY
-
-              echo "- **MCP URL:** [$MCP_URL]($MCP_URL)" >> $GITHUB_STEP_SUMMARY
-
-              echo "" >> $GITHUB_STEP_SUMMARY
-
-              echo "### 🛠️ MCP Configuration (for gemini-cli)" >> $GITHUB_STEP_SUMMARY
-
-              echo "Add this to your configuration (e.g., \`~/.gemini/config.json\` or equivalent):" >> $GITHUB_STEP_SUMMARY
-
-              echo '```json' >> $GITHUB_STEP_SUMMARY
-
-              echo '{' >> $GITHUB_STEP_SUMMARY
-
-              echo '  "mcpServers": {' >> $GITHUB_STEP_SUMMARY
-
-              echo '    "10x-todo": {' >> $GITHUB_STEP_SUMMARY
-
-              echo '      "url": "'$MCP_URL'/<YOUR_API_KEY>/'$ENCODED_API_URL'/mcp"' >> $GITHUB_STEP_SUMMARY
-
-              echo '    }' >> $GITHUB_STEP_SUMMARY
-
-              echo '  }' >> $GITHUB_STEP_SUMMARY
-
-              echo '}' >> $GITHUB_STEP_SUMMARY
-
-              echo '```' >> $GITHUB_STEP_SUMMARY
-
-            else
-
-              echo "- **MCP Status:** ❌ Failed" >> $GITHUB_STEP_SUMMARY
-
-            fi
-
-            
-
-            if [ "${{ needs.deploy-app.result }}" != "success" ] || [ "${{ needs.deploy-mcp.result }}" != "success" ]; then
-
-              exit 1
-
-            fi
-
-  
+            echo "### 🛠️ MCP Configuration (for gemini-cli)" >> $GITHUB_STEP_SUMMARY
+            echo "Add this to your configuration (e.g., \`~/.gemini/config.json\` or equivalent):" >> $GITHUB_STEP_SUMMARY
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            echo '{' >> $GITHUB_STEP_SUMMARY
+            echo '  "mcpServers": {' >> $GITHUB_STEP_SUMMARY
+            echo '    "10x-todo": {' >> $GITHUB_STEP_SUMMARY
+            echo '      "url": "'$MCP_URL'/<YOUR_API_KEY>/'$ENCODED_API_URL'/mcp"' >> $GITHUB_STEP_SUMMARY
+            echo '    }' >> $GITHUB_STEP_SUMMARY
+            echo '  }' >> $GITHUB_STEP_SUMMARY
+            echo '}' >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **MCP Status:** ❌ Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.deploy-app.result }}" != "success" ] || [ "${{ needs.deploy-mcp.result }}" != "success" ]; then
+            exit 1
+          fi
