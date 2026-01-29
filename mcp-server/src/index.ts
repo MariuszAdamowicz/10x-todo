@@ -48,7 +48,7 @@ const decodeConfig = (apiKey: string, encodedApiUrl: string) => {
 app.get("/:apiKey/:encodedApiUrl/mcp", async (req: Request, res: Response) => {
   const { apiKey, encodedApiUrl } = req.params;
   try {
-    const config = decodeConfig(apiKey, encodedApiUrl);
+    const config = decodeConfig(apiKey as string, encodedApiUrl as string);
     const transport = new SSEServerTransport(`/${apiKey}/${encodedApiUrl}/messages`, res);
     const server = new McpServer({ name: "10x-todo-mcp", version: "1.5.1" });
 
@@ -110,7 +110,7 @@ app.post("/:apiKey/:encodedApiUrl/mcp", async (req: Request, res: Response) => {
   const { method, params, id } = req.body;
 
   try {
-    const config = decodeConfig(apiKey, encodedApiUrl);
+    const config = decodeConfig(apiKey as string, encodedApiUrl as string);
     setApiClientConfig(config);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any;
