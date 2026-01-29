@@ -34,7 +34,7 @@ export async function safeFetch(path: string, options: RequestInit = {}): Promis
 
   if (!response.ok) {
     const errorBody = await response.text();
-    throw new Error(`API request failed with status ${response.status}: ${errorBody.substring(0, 500)}`);
+    throw new Error(`API request failed [${url}] with status ${response.status}: ${errorBody.substring(0, 500)}`);
   }
 
   // Zwracamy pusty obiekt jeśli status to 204 No Content
@@ -47,7 +47,7 @@ export async function safeFetch(path: string, options: RequestInit = {}): Promis
   if (!contentType || !contentType.includes("application/json")) {
     const textBody = await response.text();
     throw new Error(
-      `API returned non-JSON response. Content-Type: ${contentType || "missing"}. Body preview: ${textBody.substring(0, 200)}`
+      `API returned non-JSON response from [${url}]. Content-Type: ${contentType || "missing"}. Status: ${response.status}. Body preview: ${textBody.substring(0, 200)}`
     );
   }
 

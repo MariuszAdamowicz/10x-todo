@@ -209,7 +209,7 @@ jobs:
           if [ -z "$APP_URL" ]; then APP_URL="https://APP_URL_NOT_SET"; fi
           if [ -z "$MCP_URL" ]; then MCP_URL="https://MCP_URL_NOT_SET"; fi
           
-          ENCODED_API_URL=$(echo -n "$APP_URL" | base64 -w 0)
+          ENCODED_API_URL=$(echo -n "$APP_URL/api" | base64 -w 0)
 
           echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
