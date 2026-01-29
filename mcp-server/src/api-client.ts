@@ -42,15 +42,17 @@ export async function safeFetch(path: string, options: RequestInit = {}): Promis
     return {};
   }
 
-  // Sprawdzenie Content-Type przed parsowaniem JSON
-  const contentType = response.headers.get("content-type");
-  if (!contentType || !contentType.includes("application/json")) {
-    const textBody = await response.text();
+  // Próbujemy sparsować jako JSON
+  const textBody = await response.text();
+
+  try {
+    const data = JSON.parse(textBody);
+    return data;
+  } catch (parseError) {
+    // Jeśli parsowanie nie udało się, sprawdź Content-Type i zgłoś szczegółowy błąd
+    const contentType = response.headers.get("content-type");
     throw new Error(
-      `API returned non-JSON response from [${url}]. Content-Type: ${contentType || "missing"}. Status: ${response.status}. Body preview: ${textBody.substring(0, 200)}`
+      `API returned invalid JSON from [${url}]. Content-Type: ${contentType || "missing"}. Status: ${response.status}. Parse error: ${parseError instanceof Error ? parseError.message : "Unknown"}. Body preview: ${textBody.substring(0, 200)}`
     );
   }
-
-  const data = await response.json();
-  return data;
 }
