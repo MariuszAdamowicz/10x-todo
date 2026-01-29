@@ -13,6 +13,9 @@ import { setApiClientConfig } from "./api-client.js";
 const app = express();
 const PORT = process.env.PORT || 8081;
 
+// Middleware do parsowania JSON (musi być przed endpointami)
+app.use(express.json());
+
 // Wczytywanie promptów z JSON
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const promptsPath = join(__dirname, "prompts", "prompts.json");
@@ -95,14 +98,14 @@ app.get("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
   }
 });
 
-app.post("/:apiKey/:encodedApiUrl/messages", express.json(), async (req, res) => {
+app.post("/:apiKey/:encodedApiUrl/messages", async (req, res) => {
   const transport = transports.get(req.query.sessionId as string);
   if (transport) await transport.handlePostMessage(req, res);
   else res.status(404).send("Session not found");
 });
 
 // --- STATELESS POST HANDLER ---
-app.post("/:apiKey/:encodedApiUrl/mcp", express.json(), async (req, res) => {
+app.post("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
   const { apiKey, encodedApiUrl } = req.params;
   const { method, params, id } = req.body;
 
