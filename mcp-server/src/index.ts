@@ -7,12 +7,13 @@ import { join } from "path";
 import { fileURLToPath } from "url";
 import { z } from "zod";
 import { tools } from "./tools/index.js";
+import { resources } from "./resources/index.js";
 import { setApiClientConfig } from "./api-client.js";
 
 const app = express();
 const PORT = process.env.PORT || 8081;
 
-// Wczytywanie promptów z JSON (na razie nieużywane w SSE, ale wczytujemy)
+// Wczytywanie promptów z JSON
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const promptsPath = join(__dirname, "prompts", "prompts.json");
 const prompts = JSON.parse(readFileSync(promptsPath, "utf-8"));
@@ -80,12 +81,11 @@ app.get("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
   const { apiKey, encodedApiUrl } = req.params;
   try {
     const config = decodeConfig(apiKey, encodedApiUrl);
-    // Ważne: ścieżka do komunikatów musi zawierać parametry sesji, by trafić do właściwego kontenera
     const transport = new SSEServerTransport(`/${apiKey}/${encodedApiUrl}/messages`, res);
 
     const server = new McpServer({ name: "10x-todo-mcp", version: "1.5.0" });
 
-    // Rejestracja narzędzi w instancji serwera
+    // Rejestracja narzędzi
     for (const tool of tools) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       server.tool(tool.name, tool.description || "", (tool.inputSchema as z.AnyZodObject).shape, async (args: any) => {
@@ -95,6 +95,33 @@ app.get("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
           result.content.push({ type: "text", text: FULL_PROTOCOL_ENFORCEMENT });
         }
         return result;
+      });
+    }
+
+    // Rejestracja zasobów
+    for (const resource of resources) {
+      server.resource(resource.name, resource.uri, async () => {
+        setApiClientConfig(config);
+        const contents = await resource.read();
+        return {
+          contents: contents.map((c) => ({
+            uri: c.uri,
+            text: c.text,
+            mimeType: c.mimeType,
+          })),
+        };
+      });
+    }
+
+    // Rejestracja promptów
+    for (const prompt of prompts as Prompt[]) {
+      server.prompt(prompt.name, prompt.description || "", {}, async () => {
+        return {
+          messages: prompt.messages.map((m) => ({
+            role: m.role,
+            content: { type: "text", text: m.content.text },
+          })),
+        };
       });
     }
 
@@ -123,7 +150,6 @@ app.post("/:apiKey/:encodedApiUrl/messages", express.json(), async (req, res) =>
 });
 
 // --- HANDLER DLA TRADYCYJNEGO POST (Stateless) ---
-// To obsłuży klientów, którzy nie wspierają SSE lub robią prosty fallback.
 
 app.post("/:apiKey/:encodedApiUrl/mcp", express.json(), async (req, res) => {
   const { apiKey, encodedApiUrl } = req.params;
@@ -152,6 +178,20 @@ app.post("/:apiKey/:encodedApiUrl/mcp", express.json(), async (req, res) => {
         toolResult.content.push({ type: "text", text: FULL_PROTOCOL_ENFORCEMENT });
       }
       result = toolResult;
+    } else if (method === "resources/list") {
+      result = {
+        resources: resources.map((r) => ({
+          uri: r.uri,
+          name: r.name,
+          description: r.description,
+          mimeType: r.mimeType,
+        })),
+      };
+    } else if (method === "resources/read") {
+      const resource = resources.find((r) => r.uri === params.uri);
+      if (!resource) throw new Error("Resource not found");
+      const contents = await resource.read();
+      result = { contents };
     } else if (method === "prompts/list") {
       result = {
         prompts: (prompts as Prompt[]).map((p) => ({
@@ -173,8 +213,8 @@ app.post("/:apiKey/:encodedApiUrl/mcp", express.json(), async (req, res) => {
         serverInfo: { name: "10x-todo-mcp-http", version: "1.5.0" },
       };
     } else {
-      // Fallback dla innych metod
-      result = {};
+      // Fallback dla innych metod - zwracamy puste tablice zamiast pustego obiektu
+      result = { tools: [], resources: [], prompts: [] };
     }
 
     res.json({ jsonrpc: "2.0", id: id ?? null, result });
