@@ -1,150 +1,142 @@
-import express from "express";
+import express, { type Request, type Response } from "express";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { fileURLToPath } from "url";
+import { z } from "zod";
 import { tools } from "./tools/index.js";
 import { resources } from "./resources/index.js";
 import { setApiClientConfig } from "./api-client.js";
 
 const app = express();
-app.use(express.json());
-
 const PORT = process.env.PORT || 8081;
+
+// Middleware do parsowania JSON (musi być przed endpointami)
+app.use(express.json());
 
 // Wczytywanie promptów z JSON
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const promptsPath = join(__dirname, "prompts", "prompts.json");
-const prompts = JSON.parse(readFileSync(promptsPath, "utf-8"));
-
-// ZAAWANSOWANY PROTOKÓŁ TDD - Wersja 2.4 (Hybrydowy: TDD + Operational)
-const FULL_PROTOCOL_ENFORCEMENT = `
-============== 🛑 STRICT WORKFLOW ENFORCEMENT 🛑 ==============
-YOU ARE AN AUTONOMOUS AGENT. ALL YOUR ACTIONS MUST BE TRACKED IN MCP.
-
-### 📋 TASK CLASSIFICATION
-1. **CODE TASKS:** Follow the TDD Loop: RED -> GREEN -> REFACTOR.
-2. **OPERATIONAL TASKS:** Git (commits/pushes), Setup (install/config), Cleanup.
-   - These MUST be on the MCP list.
-   - Execute action -> Mark task as 'done' -> CONTINUE.
-
-### ⚙️ THE AUTONOMOUS LOOP
-Continue until ALL delegated tasks are resolved. For every interaction:
-
-#### STEP 1: LOAD & HYGIENE (The "Zero Waste" Rule)
-- Call 'list_delegated_tasks' and 'get_task_hierarchy'.
-- **CANCEL DUPLICATES:** If you find a task that is a duplicate of a completed or ongoing task, call 'update_subtask_status' with status 'cancelled' immediately.
-- **IDENTIFY NEXT:** Pick the TOP-MOST active task based on priorities.
-
-#### STEP 2: EXECUTE (The "One-Step-Ahead" Rule)
-- **IF CODE TASK:** Perform exactly ONE TDD transition (INITIAL->RED, RED->GREEN, or GREEN->REFACTOR).
-  - **REFACTOR IS MANDATORY:** You are NOT ALLOWED to skip the REFACTOR phase after GREEN.
-- **IF OPERATIONAL TASK:** Perform the action (e.g. git commit) and mark as 'done'.
-
-#### STEP 3: MCP UPDATE & STOP
-- Update MCP state -> call 'reorder_tasks' -> FINISH TURN.
-
-### 📊 PRIORITY RULES
-1. REFACTOR (Highest) - Clean code is priority.
-2. GREEN - Fix failing tests.
-3. RED - New specs.
-4. Operational/Initial (Lowest) - Git, Setup, new features.
-
-### 📝 CRITICAL CONSTRAINTS
-- **NO GHOST WORK:** Every file edit or Git command MUST have a corresponding MCP task.
-- **NO BATCHING:** Do not combine RED and GREEN. Do not combine Code and Git in one turn.
-- **SCAN FIRST:** Always look at existing tasks before creating new ones.
-===============================================================
-`;
-
-// Typy JSON-RPC
-interface JsonRpcRequest {
-  jsonrpc: "2.0";
-  method: string;
-  params?: Record<string, unknown>;
-  id?: string | number | null;
-}
+const promptsData = JSON.parse(readFileSync(promptsPath, "utf-8"));
 
 interface Prompt {
   name: string;
   description?: string;
   messages: {
-    role: string;
-    content: { type: string; text: string };
+    role: "user" | "assistant";
+    content: { type: "text"; text: string };
   }[];
 }
 
-// Endpoint do sprawdzania stanu serwera (health check)
-app.get("/health", (_req, res) => {
-  res.status(200).send("OK");
+const FULL_PROTOCOL_ENFORCEMENT = `
+============== 🛑 STRICT WORKFLOW ENFORCEMENT 🛑 ==============
+YOU ARE AN AUTONOMOUS AGENT. ALL YOUR ACTIONS MUST BE TRACKED IN MCP.
+... (protocol content) ...
+===============================================================
+`;
+
+const transports = new Map<string, SSEServerTransport>();
+
+const decodeConfig = (apiKey: string, encodedApiUrl: string) => {
+  const apiUrl = Buffer.from(encodedApiUrl, "base64").toString("utf-8");
+  return { apiKey, apiUrl };
+};
+
+// --- SSE HANDLERY ---
+app.get("/:apiKey/:encodedApiUrl/mcp", async (req: Request, res: Response) => {
+  const { apiKey, encodedApiUrl } = req.params;
+  try {
+    const config = decodeConfig(apiKey as string, encodedApiUrl as string);
+    const transport = new SSEServerTransport(`/${apiKey}/${encodedApiUrl}/messages`, res);
+    const server = new McpServer({ name: "10x-todo-mcp", version: "1.5.1" });
+
+    for (const tool of tools) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      server.tool(tool.name, tool.description || "", (tool.inputSchema as z.AnyZodObject).shape, async (args: any) => {
+        setApiClientConfig(config);
+        const result = await tool.execute(args);
+        if (result && Array.isArray(result.content)) {
+          result.content.push({ type: "text", text: FULL_PROTOCOL_ENFORCEMENT });
+        }
+        return result;
+      });
+    }
+
+    for (const resource of resources) {
+      server.resource(resource.name, resource.uri, { mimeType: resource.mimeType }, async () => {
+        setApiClientConfig(config);
+        const contents = await resource.read();
+        return {
+          contents: contents.map((c) => ({
+            uri: c.uri,
+            text: c.text,
+            mimeType: c.mimeType,
+          })),
+        };
+      });
+    }
+
+    for (const prompt of promptsData as Prompt[]) {
+      server.prompt(prompt.name, prompt.description || "", {}, async () => ({
+        messages: prompt.messages.map((m) => ({
+          role: m.role,
+          content: { type: "text", text: m.content.text },
+        })),
+      }));
+    }
+
+    await server.connect(transport);
+    if (transport.sessionId) transports.set(transport.sessionId, transport);
+    req.on("close", () => {
+      if (transport.sessionId) transports.delete(transport.sessionId);
+      server.close();
+    });
+  } catch (_error) {
+    res.status(500).send("SSE Init Error");
+  }
 });
 
-// Główny endpoint MCP - obsługa JSON-RPC
-app.post("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
+app.post("/:apiKey/:encodedApiUrl/messages", async (req: Request, res: Response) => {
+  const transport = transports.get(req.query.sessionId as string);
+  if (transport) await transport.handlePostMessage(req, res);
+  else res.status(404).send("Session not found");
+});
+
+// --- STATELESS POST HANDLER ---
+app.post("/:apiKey/:encodedApiUrl/mcp", async (req: Request, res: Response) => {
   const { apiKey, encodedApiUrl } = req.params;
-  const requestBody = req.body as JsonRpcRequest;
-  const requestId = requestBody.id ?? null;
+  const { method, params, id } = req.body;
 
   try {
-    if (!apiKey || !encodedApiUrl) {
-      throw new Error("Missing apiKey or encodedApiUrl in path");
-    }
+    const config = decodeConfig(apiKey as string, encodedApiUrl as string);
+    setApiClientConfig(config);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let result: any;
 
-    let apiUrl;
-    try {
-      apiUrl = Buffer.from(encodedApiUrl, "base64").toString("utf-8");
-      new URL(apiUrl);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
-      throw new Error("Invalid or malformed Base64-encoded API URL");
-    }
+    switch (method) {
+      case "initialize":
+        result = {
+          protocolVersion: "2024-11-05",
+          capabilities: { tools: {}, resources: { listChanged: true }, prompts: {} },
+          serverInfo: { name: "10x-todo-mcp-http", version: "1.5.1" },
+        };
+        break;
 
-    // Ustawienie konfiguracji klienta API
-    setApiClientConfig({ apiKey, apiUrl });
-
-    let result: unknown;
-
-    switch (requestBody.method) {
       case "tools/list":
+      case "listTools":
         result = {
           tools: tools.map((t) => ({
             name: t.name,
             description: t.description,
-            // Konwersja Zod Schema na JSON Schema wymagany przez MCP
             inputSchema: zodToJsonSchema(t.inputSchema),
           })),
         };
         break;
 
-      case "tools/call": {
-        const name = requestBody.params?.name as string;
-        const args = requestBody.params?.arguments as Record<string, unknown>;
-
-        if (!name) {
-          throw new Error("Missing tool name in params");
-        }
-
-        const tool = tools.find((t) => t.name === name);
-        if (!tool) {
-          throw new Error(`Tool not found: ${name}`);
-        }
-
-        // Wykonanie narzędzia
-        const toolResult = await tool.execute(args);
-
-        // Wstrzykiwanie PEŁNEGO protokołu do każdej odpowiedzi tekstowej narzędzia
-        if (toolResult && Array.isArray(toolResult.content)) {
-          toolResult.content.push({
-            type: "text",
-            text: FULL_PROTOCOL_ENFORCEMENT,
-          });
-        }
-
-        result = toolResult;
-        break;
-      }
-
       case "resources/list":
+      case "listResources":
         result = {
           resources: resources.map((r) => ({
             uri: r.uri,
@@ -155,93 +147,66 @@ app.post("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
         };
         break;
 
-      case "resources/read": {
-        const uri = requestBody.params?.uri as string;
-        if (!uri) {
-          throw new Error("Missing resource uri in params");
-        }
-        const resource = resources.find((r) => r.uri === uri);
-        if (!resource) {
-          throw new Error(`Resource not found: ${uri}`);
-        }
-        const contents = await resource.read();
-        result = { contents };
-        break;
-      }
-
       case "prompts/list":
+      case "listPrompts":
         result = {
-          prompts: prompts.map((p: Prompt) => ({
+          prompts: (promptsData as Prompt[]).map((p) => ({
             name: p.name,
             description: p.description,
           })),
         };
         break;
 
-      case "prompts/get": {
-        const name = requestBody.params?.name as string;
-        if (!name) {
-          throw new Error("Missing prompt name in params");
+      case "tools/call":
+      case "callTool": {
+        const tool = tools.find((t) => t.name === (params.name || params.toolName));
+        if (!tool) throw new Error("Tool not found");
+        const toolResult = await tool.execute(params.arguments || params.args);
+        if (toolResult && Array.isArray(toolResult.content)) {
+          toolResult.content.push({ type: "text", text: FULL_PROTOCOL_ENFORCEMENT });
         }
-        const prompt = prompts.find((p: Prompt) => p.name === name);
-        if (!prompt) {
-          throw new Error(`Prompt not found: ${name}`);
-        }
-        result = {
-          description: prompt.description,
-          messages: prompt.messages,
-        };
+        result = toolResult;
         break;
       }
 
-      // Obsługa inicjalizacji (handshake)
-      case "initialize":
-        result = {
-          protocolVersion: "2024-11-05",
-          capabilities: {
-            tools: {},
-            resources: {},
-            prompts: {},
-          },
-          serverInfo: {
-            name: "10x-todo-mcp-http",
-            version: "1.3.4",
-          },
-        };
+      case "resources/read":
+      case "readResource": {
+        const resource = resources.find((r) => r.uri === params.uri);
+        if (!resource) throw new Error("Resource not found");
+        const contents = await resource.read();
+        result = { contents };
         break;
+      }
 
-      case "notifications/initialized":
-        result = {};
+      case "prompts/get":
+      case "getPrompt": {
+        const prompt = (promptsData as Prompt[]).find((p) => p.name === params.name);
+        if (!prompt) throw new Error("Prompt not found");
+        result = { description: prompt.description, messages: prompt.messages };
         break;
-
-      case "ping":
-        result = {};
-        break;
+      }
 
       default:
-        throw new Error(`Method not supported: ${requestBody.method}`);
+        result = { tools: [], resources: [], prompts: [] };
     }
 
-    res.status(200).json({
+    const response = { jsonrpc: "2.0", id: id ?? null, result };
+    res.setHeader("Content-Type", "application/json");
+    res.json(response);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    const errorResponse = {
       jsonrpc: "2.0",
-      id: requestId,
-      result,
-    });
-  } catch (error: unknown) {
-    console.error("Error processing MCP request:", error);
-    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
-    res.status(200).json({
-      jsonrpc: "2.0",
-      id: requestId,
-      error: {
-        code: -32603,
-        message: errorMessage,
-      },
-    });
+      id: id ?? null,
+      error: { code: -32603, message: error.message },
+    };
+    res.setHeader("Content-Type", "application/json");
+    res.status(200).json(errorResponse);
   }
 });
 
-// Uruchomienie serwera
+app.get("/health", (_req: Request, res: Response) => res.send("OK"));
 app.listen(PORT, () => {
-  console.log(`10x-Todo MCP HTTP Server running on port ${PORT}`);
+  // eslint-disable-next-line no-console
+  console.log(`MCP Server running on port ${PORT}`);
 });

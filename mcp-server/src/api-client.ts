@@ -30,24 +30,29 @@ export async function safeFetch(path: string, options: RequestInit = {}): Promis
     "X-API-Key": config.apiKey,
   };
 
+  const response = await fetch(url, { ...options, headers });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`API request failed [${url}] with status ${response.status}: ${errorBody.substring(0, 500)}`);
+  }
+
+  // Zwracamy pusty obiekt jeśli status to 204 No Content
+  if (response.status === 204) {
+    return {};
+  }
+
+  // Próbujemy sparsować jako JSON
+  const textBody = await response.text();
+
   try {
-    const response = await fetch(url, { ...options, headers });
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error(`API Error: ${response.status} ${response.statusText}`, errorBody);
-      throw new Error(`API request failed with status ${response.status}: ${errorBody}`);
-    }
-
-    // Zwracamy pusty obiekt jeśli status to 204 No Content
-    if (response.status === 204) {
-      return {};
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error(`Fetch failed for URL: ${url}`, error);
-    // Rzucamy błąd dalej, aby mógł być złapany przez serwer MCP
-    throw error;
+    const data = JSON.parse(textBody);
+    return data;
+  } catch (parseError) {
+    // Jeśli parsowanie nie udało się, sprawdź Content-Type i zgłoś szczegółowy błąd
+    const contentType = response.headers.get("content-type");
+    throw new Error(
+      `API returned invalid JSON from [${url}]. Content-Type: ${contentType || "missing"}. Status: ${response.status}. Parse error: ${parseError instanceof Error ? parseError.message : "Unknown"}. Body preview: ${textBody.substring(0, 200)}`
+    );
   }
 }
