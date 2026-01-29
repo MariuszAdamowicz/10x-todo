@@ -78,7 +78,7 @@ const decodeConfig = (apiKey: string, encodedApiUrl: string) => {
     const apiUrl = Buffer.from(encodedApiUrl, "base64").toString("utf-8");
     new URL(apiUrl); // Validate URL
     return { apiKey, apiUrl };
-  } catch (error) {
+  } catch (_error) {
     throw new Error("Invalid or malformed Base64-encoded API URL");
   }
 };
