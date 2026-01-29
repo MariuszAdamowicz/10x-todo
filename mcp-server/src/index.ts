@@ -4,6 +4,7 @@ import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { fileURLToPath } from "url";
+import { z } from "zod";
 import { tools } from "./tools/index.js";
 import { resources } from "./resources/index.js";
 import { setApiClientConfig } from "./api-client.js";
@@ -107,7 +108,8 @@ app.get("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
 
     // Rejestracja narzędzi
     for (const tool of tools) {
-      server.tool(tool.name, tool.description || "", tool.inputSchema, async (args) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      server.tool(tool.name, tool.description || "", (tool.inputSchema as z.AnyZodObject).shape, async (args: any) => {
         // Ustawiamy konfigurację dla tego konkretnego wywołania
         // Uwaga: W środowisku async z wieloma requestami, `setApiClientConfig` musi być bezpieczne.
         // Zakładamy tutaj, że api-client.ts obsługuje to poprawnie lub że każde wywołanie jest atomowe w kontekście procesu Node (co nie jest prawdą dla concurrent requests).
