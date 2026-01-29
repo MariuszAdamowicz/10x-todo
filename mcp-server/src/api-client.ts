@@ -30,23 +30,18 @@ export async function safeFetch(path: string, options: RequestInit = {}): Promis
     "X-API-Key": config.apiKey,
   };
 
-  try {
-    const response = await fetch(url, { ...options, headers });
+  const response = await fetch(url, { ...options, headers });
 
-    if (!response.ok) {
-      const errorBody = await response.text();
-      throw new Error(`API request failed with status ${response.status}: ${errorBody}`);
-    }
-
-    // Zwracamy pusty obiekt jeśli status to 204 No Content
-    if (response.status === 204) {
-      return {};
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    // Rzucamy błąd dalej, aby mógł być złapany przez serwer MCP
-    throw error;
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`API request failed with status ${response.status}: ${errorBody}`);
   }
+
+  // Zwracamy pusty obiekt jeśli status to 204 No Content
+  if (response.status === 204) {
+    return {};
+  }
+
+  const data = await response.json();
+  return data;
 }

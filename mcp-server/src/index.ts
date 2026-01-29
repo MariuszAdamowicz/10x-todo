@@ -1,4 +1,4 @@
-import express from "express";
+import express, { type Request, type Response } from "express";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { zodToJsonSchema } from "zod-to-json-schema";
@@ -45,7 +45,7 @@ const decodeConfig = (apiKey: string, encodedApiUrl: string) => {
 };
 
 // --- SSE HANDLERY ---
-app.get("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
+app.get("/:apiKey/:encodedApiUrl/mcp", async (req: Request, res: Response) => {
   const { apiKey, encodedApiUrl } = req.params;
   try {
     const config = decodeConfig(apiKey, encodedApiUrl);
@@ -98,14 +98,14 @@ app.get("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
   }
 });
 
-app.post("/:apiKey/:encodedApiUrl/messages", async (req, res) => {
+app.post("/:apiKey/:encodedApiUrl/messages", async (req: Request, res: Response) => {
   const transport = transports.get(req.query.sessionId as string);
   if (transport) await transport.handlePostMessage(req, res);
   else res.status(404).send("Session not found");
 });
 
 // --- STATELESS POST HANDLER ---
-app.post("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
+app.post("/:apiKey/:encodedApiUrl/mcp", async (req: Request, res: Response) => {
   const { apiKey, encodedApiUrl } = req.params;
   const { method, params, id } = req.body;
 
@@ -205,7 +205,7 @@ app.post("/:apiKey/:encodedApiUrl/mcp", async (req, res) => {
   }
 });
 
-app.get("/health", (_req, res) => res.send("OK"));
+app.get("/health", (_req: Request, res: Response) => res.send("OK"));
 app.listen(PORT, () => {
   // eslint-disable-next-line no-console
   console.log(`MCP Server running on port ${PORT}`);
