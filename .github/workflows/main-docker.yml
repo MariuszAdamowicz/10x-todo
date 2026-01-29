@@ -193,23 +193,51 @@ jobs:
             echo "::warning::RENDER_DEPLOY_HOOK_URL_MCP is not set. Skipping MCP deploy."
           fi
 
-  # ------------------------------------------------------------------
-  # STAGE 5: SUMMARY
-  # ------------------------------------------------------------------
-  summary:
-    name: Pipeline Summary
-    needs: [deploy-app, deploy-mcp]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Generate Summary
-        run: |
+    # ------------------------------------------------------------------
 
-            APP_URL="${{ vars.PUBLIC_APP_URL || 'https://twoja-aplikacja.onrender.com' }}"
+    # STAGE 5: SUMMARY
 
-            MCP_URL="${{ vars.PUBLIC_MCP_URL || 'https://twoj-mcp-server.onrender.com' }}"
+    # ------------------------------------------------------------------
+
+    summary:
+
+      name: Pipeline Summary
+
+      needs: [deploy-app, deploy-mcp]
+
+      if: always()
+
+      runs-on: ubuntu-latest
+
+      environment: production
+
+      steps:
+
+        - name: Generate Summary
+
+          run: |
+
+            APP_URL="${{ vars.PUBLIC_APP_URL }}"
+
+            MCP_URL="${{ vars.PUBLIC_MCP_URL }}"
 
             
+
+            # Default fallback if vars are missing (for safety)
+
+            if [ -z "$APP_URL" ]; then APP_URL="https://APP_URL_NOT_SET"; fi
+
+            if [ -z "$MCP_URL" ]; then MCP_URL="https://MCP_URL_NOT_SET"; fi
+
+            
+
+            # Base64 encode the App URL for the configuration path
+
+            # -w 0 prevents line wrapping in output
+
+            ENCODED_API_URL=$(echo -n "$APP_URL" | base64 -w 0)
+
+  
 
             echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
 
@@ -241,7 +269,7 @@ jobs:
 
               echo "### 🛠️ MCP Configuration (for gemini-cli)" >> $GITHUB_STEP_SUMMARY
 
-              echo "Add this to your configuration (e.g., `~/.gemini/config.json` or equivalent):" >> $GITHUB_STEP_SUMMARY
+              echo "Add this to your configuration (e.g., \`~/.gemini/config.json\` or equivalent):" >> $GITHUB_STEP_SUMMARY
 
               echo '```json' >> $GITHUB_STEP_SUMMARY
 
@@ -251,7 +279,7 @@ jobs:
 
               echo '    "10x-todo": {' >> $GITHUB_STEP_SUMMARY
 
-              echo '      "url": "'$MCP_URL'/<YOUR_API_KEY>/<BASE64_ENCODED_API_URL>/mcp"' >> $GITHUB_STEP_SUMMARY
+              echo '      "url": "'$MCP_URL'/<YOUR_API_KEY>/'$ENCODED_API_URL'/mcp"' >> $GITHUB_STEP_SUMMARY
 
               echo '    }' >> $GITHUB_STEP_SUMMARY
 
